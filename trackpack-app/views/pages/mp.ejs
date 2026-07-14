@@ -1,0 +1,145 @@
+<% const ok  = typeof query !== 'undefined' && query?.ok %>
+<% const err = typeof query !== 'undefined' && query?.err %>
+<% if (ok)  { %><div class="alert alert-success"><i class="ti ti-circle-check"></i>Ricevimento registrato: <strong><%= query.lotto %></strong></div><% } %>
+<% if (err) { %><div class="alert alert-error"><i class="ti ti-alert-triangle"></i>Errore durante il salvataggio. Riprova.</div><% } %>
+
+<div class="two-col">
+  <!-- FORM -->
+  <div class="card">
+    <div class="card-title"><i class="ti ti-truck-delivery"></i>Nuovo ricevimento</div>
+    <form method="POST" action="/mp" id="form-mp">
+
+      <div class="fr">
+        <label class="fl">Fornitore</label>
+        <select name="fornitore_id" class="fi">
+          <option value="">— seleziona —</option>
+          <% fornitori.forEach(f => { %>
+            <option value="<%= f.id %>"><%= f.ragione_sociale %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="fr">
+        <label class="fl">Materiale MP <span class="req">*</span></label>
+        <select name="materiale_codice" class="fi" id="r-mat" onchange="updateLottoMP()" required>
+          <option value="">— seleziona —</option>
+          <% materiali.forEach(m => { %>
+            <option value="<%= m.codice %>" data-um="<%= m.unita_misura %>"><%= m.descrizione %></option>
+          <% }) %>
+        </select>
+        <input type="hidden" name="materiale_descrizione" id="r-mat-descr"/>
+      </div>
+
+      <div class="g3">
+        <div class="fr">
+          <label class="fl">N° DDT <span class="req">*</span></label>
+          <input type="text" name="ddt_numero" class="fi" id="r-ddt" placeholder="es. 2026/0445" oninput="updateLottoMP()" required>
+        </div>
+        <div class="fr">
+          <label class="fl">Data DDT <span class="req">*</span></label>
+          <input type="date" name="ddt_data" class="fi" id="r-data" value="<%= new Date().toISOString().slice(0,10) %>" oninput="updateLottoMP()" required>
+        </div>
+        <div class="fr">
+          <label class="fl">Quantità (kg, mq, pz) <span class="req">*</span></label>
+          <div style="display:flex;gap:6px;">
+            <input type="number" name="quantita" class="fi" id="r-qty" placeholder="0" oninput="updateLottoMP()" style="flex:1;" required>
+            <select name="unita_misura" class="fi" id="r-um" onchange="updateLottoMP()" style="width:72px;padding:11px 6px;">
+              <option>kg</option><option>mq</option><option>pz</option><option>mt</option><option>litri</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="fr">
+        <label class="fl">N° pedane <span class="req">*</span></label>
+        <input type="number" name="n_pedane" class="fi" id="r-ped" value="1" min="1" oninput="updateLottoMP()" required>
+      </div>
+
+      <div class="fr">
+        <label class="fl">Note / anomalie</label>
+        <textarea name="note" class="fi" placeholder="es. 2 pedane danneggiate, accettate con riserva…"></textarea>
+      </div>
+
+      <div class="lotto-box lb-mp" id="lotto-mp-preview">
+        <div class="lotto-label">Lotto MP generato automaticamente</div>
+        <div class="lotto-code">LT-AAAAMMGG-MAT-NNN</div>
+        <div class="lotto-meta">Seleziona materiale e compila i campi</div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn" onclick="openModal('modal-label-mp')">
+          <i class="ti ti-printer"></i>Stampa etichetta
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <i class="ti ti-check"></i>Conferma ricevimento
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- STORICO -->
+  <div class="card">
+    <div class="card-title"><i class="ti ti-history"></i>Storico ricevimenti</div>
+    <% if (storico.length === 0) { %>
+      <div class="empty"><i class="ti ti-inbox"></i><p>Nessun ricevimento ancora</p></div>
+    <% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Lotto MP</th><th>Materiale</th><th>DDT</th><th>Data</th><th>Qty</th><th>Ped.</th><th>Stato</th></tr></thead>
+        <tbody>
+          <% storico.forEach(r => { %>
+            <tr>
+              <td class="mono"><%= r.codice %></td>
+              <td><%= r.materiale_descrizione %></td>
+              <td class="mono"><%= r.ddt_numero %></td>
+              <td><%= r.ddt_data %></td>
+              <td><%= r.quantita %> <%= r.unita_misura %></td>
+              <td><%= r.n_pedane %></td>
+              <td><span class="pill pill-<%= r.stato==='ok'?'verde':r.stato==='riserva'?'amber':'grigio' %>"><%= r.stato %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } %>
+  </div>
+</div>
+
+<!-- MODAL ETICHETTA MP -->
+<div class="modal-overlay" id="modal-label-mp">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title"><i class="ti ti-barcode" style="color:var(--su-viola);"></i>Etichetta MP</span>
+      <button class="modal-close" onclick="closeModal('modal-label-mp')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="label-preview">
+        <div class="label-company">DULCIBANA s.r.l.</div>
+        <svg width="340" height="80" viewBox="0 0 340 80" style="display:block;margin:0 auto;">
+          <rect width="340" height="80" fill="white"/>
+          <g fill="black">
+            <rect x="10" y="0" width="3" height="75"/><rect x="16" y="0" width="1" height="75"/><rect x="20" y="0" width="4" height="75"/><rect x="27" y="0" width="2" height="75"/><rect x="32" y="0" width="1" height="75"/><rect x="36" y="0" width="3" height="75"/><rect x="42" y="0" width="2" height="75"/><rect x="47" y="0" width="4" height="75"/><rect x="54" y="0" width="1" height="75"/><rect x="58" y="0" width="3" height="75"/><rect x="64" y="0" width="2" height="75"/><rect x="69" y="0" width="1" height="75"/><rect x="73" y="0" width="4" height="75"/><rect x="80" y="0" width="2" height="75"/><rect x="85" y="0" width="3" height="75"/><rect x="91" y="0" width="1" height="75"/><rect x="95" y="0" width="2" height="75"/><rect x="100" y="0" width="4" height="75"/><rect x="107" y="0" width="1" height="75"/><rect x="111" y="0" width="3" height="75"/><rect x="117" y="0" width="2" height="75"/><rect x="122" y="0" width="1" height="75"/><rect x="126" y="0" width="4" height="75"/><rect x="133" y="0" width="2" height="75"/><rect x="138" y="0" width="3" height="75"/><rect x="144" y="0" width="1" height="75"/><rect x="148" y="0" width="2" height="75"/><rect x="153" y="0" width="4" height="75"/><rect x="160" y="0" width="3" height="75"/><rect x="166" y="0" width="1" height="75"/><rect x="170" y="0" width="4" height="75"/><rect x="177" y="0" width="2" height="75"/><rect x="182" y="0" width="1" height="75"/><rect x="186" y="0" width="3" height="75"/><rect x="192" y="0" width="2" height="75"/><rect x="197" y="0" width="4" height="75"/><rect x="204" y="0" width="1" height="75"/><rect x="208" y="0" width="3" height="75"/><rect x="214" y="0" width="2" height="75"/><rect x="219" y="0" width="1" height="75"/><rect x="223" y="0" width="4" height="75"/><rect x="230" y="0" width="2" height="75"/><rect x="235" y="0" width="3" height="75"/><rect x="241" y="0" width="1" height="75"/><rect x="245" y="0" width="2" height="75"/><rect x="250" y="0" width="4" height="75"/><rect x="257" y="0" width="1" height="75"/><rect x="261" y="0" width="3" height="75"/><rect x="267" y="0" width="2" height="75"/><rect x="272" y="0" width="4" height="75"/><rect x="279" y="0" width="1" height="75"/><rect x="283" y="0" width="3" height="75"/><rect x="289" y="0" width="2" height="75"/><rect x="294" y="0" width="1" height="75"/><rect x="298" y="0" width="4" height="75"/><rect x="305" y="0" width="3" height="75"/><rect x="311" y="0" width="1" height="75"/><rect x="315" y="0" width="4" height="75"/><rect x="322" y="0" width="2" height="75"/><rect x="327" y="0" width="3" height="75"/>
+          </g>
+        </svg>
+        <div class="label-gs1">(01) 05089217109800 (10)20260623<br>(17)20260623 (37)500 (3103) 001001</div>
+        <div class="label-row">
+          <span>LOTTO: <span id="mp-lbl-lotto">—</span></span>
+          <span>Q.ty: <span id="mp-lbl-qty">—</span></span>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn" onclick="closeModal('modal-label-mp')">Annulla</button>
+        <button class="btn btn-primary" onclick="toast('Etichetta inviata alla Zebra ZD230','ok');closeModal('modal-label-mp')">
+          <i class="ti ti-printer"></i>Stampa
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Aggiorna select materiale con la descrizione
+document.getElementById('r-mat')?.addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex]
+  document.getElementById('r-mat-descr').value = opt.text
+  updateLottoMP()
+})
+</script>

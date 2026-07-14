@@ -1,0 +1,53 @@
+<div class="card" style="max-width:640px;">
+  <div class="card-title"><i class="ti ti-git-branch"></i>Ricerca rintracciabilità</div>
+  <p style="font-size:13px;color:var(--grigio);margin-bottom:14px;">Inserisci qualsiasi codice lotto (LT-, SM- o PF-) per ricostruire l'intera catena di produzione.</p>
+  <div class="fr">
+    <label class="fl">Codice lotto da tracciare</label>
+    <input type="text" id="trace-input" class="fi" placeholder="es. LT-20260611-CAR-001" style="font-family:'SF Mono',monospace;" onkeydown="if(event.key==='Enter')doTrace()">
+  </div>
+  <div style="display:flex;gap:10px;">
+    <button class="btn btn-danger" onclick="doTrace()"><i class="ti ti-search"></i>Traccia catena completa</button>
+    <button class="btn" id="btn-export" style="display:none;" onclick="toast('Export PDF in preparazione…','ok')"><i class="ti ti-file-type-pdf"></i>Esporta PDF</button>
+  </div>
+</div>
+
+<div id="trace-result" style="display:none;">
+  <div class="card" style="border-color:#f7c1c1;">
+    <div style="font-size:14px;font-weight:700;color:var(--rosso);margin-bottom:10px;">
+      <i class="ti ti-git-branch" style="vertical-align:-2px;margin-right:6px;"></i>Catena · <span id="trace-title" style="font-family:'SF Mono',monospace;font-size:12px;"></span>
+    </div>
+    <div class="chain" id="trace-chain"></div>
+  </div>
+
+  <div class="trace-grid">
+    <div class="trace-col">
+      <div class="trace-col-hdr trace-mp-hdr"><i class="ti ti-truck-delivery" style="vertical-align:-2px;margin-right:6px;"></i>Materie prime all'origine</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Lotto MP</th><th>DDT rif.</th><th>Materiale</th><th>Fornitore</th><th>Data</th></tr></thead>
+        <tbody id="trace-mp-body"></tbody>
+      </table></div>
+    </div>
+    <div class="trace-col">
+      <div class="trace-col-hdr trace-sm-hdr"><i class="ti ti-layers-subtract" style="vertical-align:-2px;margin-right:6px;"></i>SM lavorazioni</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Lotto SM</th><th>DDT rif.</th><th>Tipo</th><th>Lav.</th><th>Data</th></tr></thead>
+        <tbody id="trace-sm-body"></tbody>
+      </table></div>
+    </div>
+    <div class="trace-col">
+      <div class="trace-col-hdr trace-dst-hdr"><i class="ti ti-truck" style="vertical-align:-2px;margin-right:6px;"></i>Destinazioni</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Lotto PF</th><th>DDT</th><th>Cliente</th><th>Data</th></tr></thead>
+        <tbody id="trace-dst-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-export') && (document.getElementById('trace-result').addEventListener('DOMSubtreeModified', () => {
+    document.getElementById('btn-export').style.display = 'flex'
+  }))
+})
+</script>

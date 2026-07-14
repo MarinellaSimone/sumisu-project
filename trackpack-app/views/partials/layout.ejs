@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrackPack · <%= typeof title !== 'undefined' ? title : 'Gestionale' %></title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">
+        <!-- Logo S Sumisu-style -->
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M17 6C17 6 14 4 10 5C7 6 6 8 7 10C8 12 12 12 14 14C16 16 15 18 12 19C9 20 6 18 6 18"
+            stroke="#6b5bb5" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="sidebar-logo-text">TrackPack</div>
+        <div class="sidebar-logo-sub">Packaging alimentare</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Operativo</div>
+      <a href="/"           class="nav-item"><i class="ti ti-layout-dashboard"></i>Dashboard</a>
+      <a href="/mp"         class="nav-item"><i class="ti ti-truck-delivery"></i>Ricevimento MP</a>
+      <a href="/sm"         class="nav-item"><i class="ti ti-layers-subtract"></i>Lavorazione SM</a>
+      <a href="/pf"         class="nav-item"><i class="ti ti-building-factory-2"></i>Produzione PF</a>
+      <a href="/magazzino"  class="nav-item"><i class="ti ti-package"></i>Magazzino</a>
+      <a href="/spedizioni" class="nav-item"><i class="ti ti-truck"></i>Spedizioni / DDT</a>
+      <div class="sidebar-section">Gestione</div>
+      <a href="/anagrafiche" class="nav-item"><i class="ti ti-address-book"></i>Anagrafiche</a>
+      <a href="/traccia"     class="nav-item"><i class="ti ti-git-branch"></i>Rintracciabilità</a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <a href="/impostazioni" class="nav-item"><i class="ti ti-settings"></i>Impostazioni</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <h1 class="topbar-title"><%= typeof title !== 'undefined' ? title : '' %></h1>
+      <div class="topbar-right">
+        <% if (typeof badge !== 'undefined' && badge) { %>
+        <span class="topbar-badge"><i class="ti ti-alert-triangle"></i><%= badge %></span>
+        <% } %>
+        <div class="topbar-user">
+          <div class="user-avatar">OP</div>
+          Operatore
+        </div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <% if (typeof flash !== 'undefined' && flash) { %>
+        <div class="alert alert-<%= flash.type %>">
+          <i class="ti ti-<%= flash.type==='success'?'circle-check':'alert-triangle' %>"></i>
+          <%= flash.msg %>
+        </div>
+      <% } %>
+      <%- body %>
+    </main>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/js/app.js"></script>
+<%- typeof scripts !== 'undefined' ? scripts : '' %>
+</body>
+</html>

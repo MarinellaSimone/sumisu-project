@@ -1,0 +1,54 @@
+<div class="two-col">
+  <div class="card">
+    <div class="card-title"><i class="ti ti-truck"></i>Nuova spedizione / DDT</div>
+    <form method="POST" action="/spedizioni">
+      <div class="fr"><label class="fl">Cliente <span class="req">*</span></label><input type="text" name="cliente" class="fi" required></div>
+      <div class="g2">
+        <div class="fr"><label class="fl">Data spedizione</label><input type="date" name="data_spedizione" class="fi" value="<%= new Date().toISOString().slice(0,10) %>"></div>
+        <div class="fr"><label class="fl">Vettore</label><input type="text" name="vettore" class="fi" placeholder="es. BRT Corriere"></div>
+      </div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Lotti PF da spedire</div>
+      <div id="sped-pf-rows"></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <select class="fi" id="sped-pf-sel" style="flex:1;font-size:13px;">
+          <option value="">Seleziona lotto PF…</option>
+          <% lottiPF.forEach(l => { %>
+            <option value="<%= l.codice %>" data-descr="<%= l.articolo_descrizione %>" data-giac="<%= l.giacenza %>">
+              <%= l.codice %> · <%= l.articolo_descrizione %> · <%= l.giacenza %> pz
+            </option>
+          <% }) %>
+        </select>
+        <button type="button" class="btn btn-verde" onclick="aggiungiSpedPF()"><i class="ti ti-plus"></i></button>
+      </div>
+      <div class="fr"><label class="fl">Note</label><textarea name="note" class="fi" placeholder="es. fragile, tenere in verticale…"></textarea></div>
+      <div class="btn-row">
+        <button type="button" class="btn"><i class="ti ti-file-text"></i>Genera DDT PDF</button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-check"></i>Conferma spedizione</button>
+      </div>
+    </form>
+  </div>
+  <div class="card">
+    <div class="card-title"><i class="ti ti-history"></i>Storico DDT</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>N° DDT</th><th>Cliente</th><th>Data</th><th>Stato</th></tr></thead>
+      <tbody>
+        <% storico.forEach(d => { %>
+        <tr>
+          <td class="mono"><%= d.numero %></td><td><%= d.cliente %></td>
+          <td><%= d.data_spedizione %></td>
+          <td><span class="pill pill-<%= d.stato==='consegnato'?'verde':d.stato==='in_transito'?'viola':'amber' %>"><%= d.stato %></span></td>
+        </tr>
+        <% }) %>
+        <% if(storico.length===0){ %><tr><td colspan="4" style="text-align:center;color:#bbb;font-style:italic;padding:16px;">Nessuna spedizione</td></tr><% } %>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+<script>
+function aggiungiSpedPF(){
+  const sel=document.getElementById('sped-pf-sel');if(!sel.value)return;
+  const opt=sel.options[sel.selectedIndex];
+  addLottoRow('sped-pf-rows','PF',sel.value,opt.dataset.descr+' · '+opt.dataset.giac+' pz disp.','pz');
+  sel.value='';
+}
+</script>

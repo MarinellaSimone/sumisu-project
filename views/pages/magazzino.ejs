@@ -1,0 +1,54 @@
+<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
+  <div class="kpi-card"><div class="kpi-label">Lotti MP</div><div class="kpi-value kpi-verde"><%= mp.length %></div></div>
+  <div class="kpi-card"><div class="kpi-label">Lavorazioni SM</div><div class="kpi-value kpi-viola"><%= sm.length %></div></div>
+  <div class="kpi-card"><div class="kpi-label">Prodotti PF</div><div class="kpi-value kpi-amber"><%= pf.length %></div></div>
+</div>
+<div class="card">
+  <div class="tabs">
+    <button class="tab-btn on" data-tab-group="mag" data-tab="mp" onclick="switchTab('mag','mp')">MP</button>
+    <button class="tab-btn" data-tab-group="mag" data-tab="sm" onclick="switchTab('mag','sm')">SM</button>
+    <button class="tab-btn" data-tab-group="mag" data-tab="pf" onclick="switchTab('mag','pf')">PF</button>
+  </div>
+  <div data-tab-panel="mag" data-panel="mp" class="table-wrap"><table>
+    <thead><tr><th>Lotto MP</th><th>Materiale</th><th>Giacenza</th><th>DDT</th><th>Data</th><th>Stato</th></tr></thead>
+    <tbody>
+      <% mp.forEach(r => { %>
+      <tr>
+        <td class="mono"><%= r.codice %></td><td><%= r.materiale_descrizione %></td>
+        <td><%= r.giacenza %> <%= r.unita_misura %></td><td class="mono"><%= r.ddt_numero %></td>
+        <td><%= r.ddt_data %></td>
+        <td><span class="pill pill-<%= r.stato==='ok'?'verde':r.stato==='esaurito'?'rosso':'amber' %>"><%= r.stato %></span></td>
+      </tr>
+      <% }) %>
+      <% if(mp.length===0){ %><tr><td colspan="6" style="text-align:center;color:#bbb;font-style:italic;padding:16px;">Nessun lotto MP</td></tr><% } %>
+    </tbody>
+  </table></div>
+  <div data-tab-panel="mag" data-panel="sm" class="table-wrap" style="display:none;"><table>
+    <thead><tr><th>Lotto SM</th><th>Tipo</th><th>Giacenza</th><th>Lavorazione</th><th>Data</th><th>Stato</th></tr></thead>
+    <tbody>
+      <% sm.forEach(r => { %>
+      <tr>
+        <td class="mono"><%= r.codice %></td><td><%= r.tipo_descrizione %></td>
+        <td><%= r.giacenza %> <%= r.unita_misura %></td>
+        <td><span class="pill pill-<%= r.tipo_lavorazione==='interna'?'grigio':'verde' %>"><%= r.tipo_lavorazione %></span></td>
+        <td><%= r.data_lavorazione %></td>
+        <td><span class="pill pill-<%= r.stato==='disponibile'?'verde':r.stato==='in_uso'?'viola':'grigio' %>"><%= r.stato %></span></td>
+      </tr>
+      <% }) %>
+      <% if(sm.length===0){ %><tr><td colspan="6" style="text-align:center;color:#bbb;font-style:italic;padding:16px;">Nessun lotto SM</td></tr><% } %>
+    </tbody>
+  </table></div>
+  <div data-tab-panel="mag" data-panel="pf" class="table-wrap" style="display:none;"><table>
+    <thead><tr><th>Lotto PF</th><th>Articolo</th><th>Giacenza</th><th>Stato</th></tr></thead>
+    <tbody>
+      <% pf.forEach(r => { %>
+      <tr>
+        <td class="mono"><%= r.codice %></td><td><%= r.articolo_descrizione %></td>
+        <td><%= (r.giacenza||0).toLocaleString('it-IT') %> pz</td>
+        <td><span class="pill pill-<%= r.stato==='completato'||r.stato==='in_corso'?'verde':'amber' %>"><%= r.stato %></span></td>
+      </tr>
+      <% }) %>
+      <% if(pf.length===0){ %><tr><td colspan="4" style="text-align:center;color:#bbb;font-style:italic;padding:16px;">Nessun lotto PF</td></tr><% } %>
+    </tbody>
+  </table></div>
+</div>

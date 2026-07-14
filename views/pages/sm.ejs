@@ -1,0 +1,192 @@
+<div class="two-col">
+  <div class="card">
+    <div class="card-title"><i class="ti ti-layers-subtract"></i>Nuova lavorazione SM</div>
+    <form method="POST" action="/sm" id="form-sm">
+      <input type="hidden" name="tipo_lavorazione" id="sm-tipo-val" value="interna">
+
+      <!-- TIPO LAVORAZIONE -->
+      <div class="fr">
+        <label class="fl">Tipo lavorazione <span class="req">*</span></label>
+        <div class="tipo-toggle">
+          <button type="button" class="tipo-btn on" id="sm-int" onclick="setSMTipo('int')">🏭 Interna</button>
+          <button type="button" class="tipo-btn" id="sm-ext" onclick="setSMTipo('ext')">🚛 Esterna (terzista)</button>
+        </div>
+      </div>
+
+      <!-- DATI TERZISTA (opzionali) -->
+      <div id="sm-ext-fields" style="display:none;" class="inline-new">
+        <div class="inline-title"><i class="ti ti-truck" style="font-size:14px;vertical-align:-2px;"></i> Dati terzista <span style="font-weight:400;color:#bbb;">(facoltativi per lavorazione interna)</span></div>
+        <div class="g3">
+          <div class="fr">
+            <label class="fl">Fornitore SM</label>
+            <select name="fornitore_sm_id" class="fi">
+              <option value="">— nessuno —</option>
+              <% fornitori.forEach(f => { %>
+                <option value="<%= f.id %>"><%= f.ragione_sociale %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="fr">
+            <label class="fl">N° DDT</label>
+            <input type="text" name="ddt_numero" class="fi" placeholder="es. 2026/0112">
+          </div>
+          <div class="fr">
+            <label class="fl">Data DDT</label>
+            <input type="date" name="ddt_data" class="fi" value="<%= new Date().toISOString().slice(0,10) %>">
+          </div>
+        </div>
+      </div>
+
+      <div class="fr">
+        <label class="fl">Tipo semilavorato <span class="req">*</span></label>
+        <select name="tipo_codice" class="fi" id="s-tipo" onchange="updateLottoSM();document.getElementById('s-tipo-descr').value=this.options[this.selectedIndex].text" required>
+          <option value="">— seleziona —</option>
+          <% tipi.forEach(t => { %>
+            <option value="<%= t.codice %>"><%= t.descrizione %></option>
+          <% }) %>
+        </select>
+        <input type="hidden" name="tipo_descrizione" id="s-tipo-descr">
+      </div>
+
+      <div class="g2">
+        <div class="fr">
+          <label class="fl">Quantità <span class="req">*</span></label>
+          <div style="display:flex;gap:6px;">
+            <input type="number" name="quantita" class="fi" id="s-qty" placeholder="0" oninput="updateLottoSM()" style="flex:1;" required>
+            <select name="unita_misura" class="fi" id="s-um" onchange="updateLottoSM()" style="width:72px;padding:11px 6px;">
+              <option>pz</option><option>kg</option><option>mq</option><option>mt</option>
+            </select>
+          </div>
+        </div>
+        <div class="fr">
+          <label class="fl">Data lavorazione</label>
+          <input type="date" name="data_lavorazione" class="fi" value="<%= new Date().toISOString().slice(0,10) %>">
+        </div>
+      </div>
+
+      <!-- LOTTI MP COLLEGATI -->
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">Lotti MP utilizzati</div>
+      <div id="sm-mp-rows"></div>
+
+      <!-- AGGIUNGI LOTTO MP: MANUALE / SCAN -->
+      <div style="border:1.5px solid var(--bdr);border-radius:var(--rad);overflow:hidden;margin-bottom:14px;">
+        <div class="scan-tabs">
+          <button type="button" class="scan-tab on" data-scan="m" onclick="setAddMPMode('m')"><i class="ti ti-forms"></i> Manuale</button>
+          <button type="button" class="scan-tab" data-scan="s" onclick="setAddMPMode('s')"><i class="ti ti-scan"></i> Scannerizza</button>
+        </div>
+        <div id="add-mp-manual" style="padding:12px;">
+          <div style="display:flex;gap:8px;">
+            <select class="fi" id="mp-select" style="flex:1;font-size:13px;">
+              <option value="">Seleziona lotto MP disponibile…</option>
+              <% lottiMP.forEach(l => { %>
+                <option value="<%= l.codice %>" data-descr="<%= l.materiale_descrizione %>" data-um="<%= l.unita_misura %>" data-giac="<%= l.giacenza %>">
+                  <%= l.codice %> · <%= l.materiale_descrizione %> · <%= l.giacenza %> <%= l.unita_misura %>
+                </option>
+              <% }) %>
+            </select>
+            <button type="button" class="btn btn-verde" onclick="aggiungiMP()"><i class="ti ti-plus"></i></button>
+          </div>
+        </div>
+        <div id="add-mp-scan" style="display:none;padding:12px;">
+          <div style="background:var(--su-verdel);border:2px dashed var(--su-verdeld);border-radius:var(--rad);padding:20px;text-align:center;color:var(--su-violad);cursor:pointer;">
+            <i class="ti ti-scan" style="font-size:36px;display:block;margin-bottom:8px;opacity:.6;"></i>
+            <div style="font-size:14px;font-weight:700;">Tocca per attivare lo scanner</div>
+            <div style="font-size:12px;opacity:.7;margin-top:4px;">Inquadra il barcode GS1-128</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin:12px 0;color:#bbb;font-size:12px;">
+            <div style="flex:1;height:1px;background:var(--bdr);"></div>oppure<div style="flex:1;height:1px;background:var(--bdr);"></div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" class="fi" id="mp-scan-input" placeholder="LT-AAAAMMGG-MAT-NNN" style="font-family:'SF Mono',monospace;flex:1;font-size:13px;">
+            <button type="button" class="btn btn-verde" onclick="aggiungiMPScan()"><i class="ti ti-arrow-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="fr">
+        <label class="fl">Note di lavorazione</label>
+        <textarea name="note" class="fi" placeholder="es. resa 94%, 180 scarti…"></textarea>
+      </div>
+
+      <div class="lotto-box lb-sm" id="lotto-sm-preview">
+        <div class="lotto-label">Lotto SM generato</div>
+        <div class="lotto-code">SM-AAAAMMGG-TIPO-NNN</div>
+        <div class="lotto-meta">Seleziona tipo e inserisci quantità</div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn" onclick="openModal('modal-label-sm')"><i class="ti ti-printer"></i>Stampa etichetta</button>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-check"></i>Conferma SM</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="ti ti-history"></i>Storico lavorazioni</div>
+    <% if (storico.length === 0) { %>
+      <div class="empty"><i class="ti ti-inbox"></i><p>Nessuna lavorazione ancora</p></div>
+    <% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Lotto SM</th><th>Tipo</th><th>Lavorazione</th><th>Data</th><th>Qty</th><th>Stato</th></tr></thead>
+        <tbody>
+          <% storico.forEach(r => { %>
+            <tr>
+              <td class="mono"><%= r.codice %></td>
+              <td><%= r.tipo_descrizione %></td>
+              <td><span class="pill pill-<%= r.tipo_lavorazione==='interna'?'grigio':'verde' %>"><%= r.tipo_lavorazione %></span></td>
+              <td><%= r.data_lavorazione %></td>
+              <td><%= r.quantita %> <%= r.unita_misura %></td>
+              <td><span class="pill pill-<%= r.stato==='disponibile'?'verde':r.stato==='in_uso'?'viola':'grigio' %>"><%= r.stato %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } %>
+  </div>
+</div>
+
+<!-- MODAL ETICHETTA SM -->
+<div class="modal-overlay" id="modal-label-sm">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title"><i class="ti ti-barcode" style="color:var(--su-viola);"></i>Etichetta SM</span>
+      <button class="modal-close" onclick="closeModal('modal-label-sm')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="label-preview" style="max-width:360px;">
+        <div class="label-company">DULCIBANA s.r.l.</div>
+        <svg width="320" height="75" viewBox="0 0 320 75" style="display:block;margin:0 auto;">
+          <rect width="320" height="75" fill="white"/>
+          <g fill="black">
+            <rect x="8" y="0" width="2" height="70"/><rect x="13" y="0" width="4" height="70"/><rect x="20" y="0" width="1" height="70"/><rect x="24" y="0" width="3" height="70"/><rect x="30" y="0" width="2" height="70"/><rect x="35" y="0" width="4" height="70"/><rect x="42" y="0" width="1" height="70"/><rect x="46" y="0" width="2" height="70"/><rect x="51" y="0" width="4" height="70"/><rect x="58" y="0" width="3" height="70"/><rect x="64" y="0" width="1" height="70"/><rect x="68" y="0" width="2" height="70"/><rect x="73" y="0" width="4" height="70"/><rect x="80" y="0" width="1" height="70"/><rect x="84" y="0" width="3" height="70"/><rect x="90" y="0" width="2" height="70"/><rect x="95" y="0" width="4" height="70"/><rect x="102" y="0" width="1" height="70"/><rect x="106" y="0" width="3" height="70"/><rect x="112" y="0" width="2" height="70"/><rect x="117" y="0" width="1" height="70"/><rect x="121" y="0" width="4" height="70"/><rect x="128" y="0" width="2" height="70"/><rect x="133" y="0" width="3" height="70"/><rect x="139" y="0" width="1" height="70"/><rect x="143" y="0" width="2" height="70"/><rect x="148" y="0" width="4" height="70"/><rect x="155" y="0" width="3" height="70"/><rect x="161" y="0" width="1" height="70"/><rect x="165" y="0" width="4" height="70"/><rect x="172" y="0" width="2" height="70"/><rect x="177" y="0" width="1" height="70"/><rect x="181" y="0" width="3" height="70"/><rect x="187" y="0" width="2" height="70"/><rect x="192" y="0" width="4" height="70"/><rect x="199" y="0" width="1" height="70"/><rect x="203" y="0" width="3" height="70"/><rect x="209" y="0" width="2" height="70"/><rect x="214" y="0" width="4" height="70"/><rect x="221" y="0" width="1" height="70"/><rect x="225" y="0" width="2" height="70"/><rect x="230" y="0" width="3" height="70"/><rect x="236" y="0" width="4" height="70"/><rect x="243" y="0" width="1" height="70"/><rect x="247" y="0" width="3" height="70"/><rect x="253" y="0" width="2" height="70"/><rect x="258" y="0" width="1" height="70"/><rect x="262" y="0" width="4" height="70"/><rect x="269" y="0" width="2" height="70"/><rect x="274" y="0" width="3" height="70"/><rect x="280" y="0" width="1" height="70"/><rect x="284" y="0" width="4" height="70"/><rect x="291" y="0" width="2" height="70"/><rect x="296" y="0" width="3" height="70"/>
+          </g>
+        </svg>
+        <div class="label-gs1">(01) 05089217109800 (10)SM20260611<br>(17)20260611 (37)3000</div>
+        <div class="label-row">
+          <span>LOTTO: SM-20260611-SCT-001</span>
+          <span>Q.ty: 3.000 pz</span>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn" onclick="closeModal('modal-label-sm')">Annulla</button>
+        <button class="btn btn-primary" onclick="toast('Etichetta SM inviata alla Zebra','ok');closeModal('modal-label-sm')"><i class="ti ti-printer"></i>Stampa</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function aggiungiMP() {
+  const sel = document.getElementById('mp-select')
+  if (!sel.value) return
+  const opt = sel.options[sel.selectedIndex]
+  addLottoRow('sm-mp-rows', 'MP', sel.value, opt.dataset.descr + ' · ' + opt.dataset.giac + ' ' + opt.dataset.um + ' disp.', opt.dataset.um)
+  sel.value = ''
+}
+function aggiungiMPScan() {
+  const v = document.getElementById('mp-scan-input')?.value.trim()
+  if (!v) return
+  addLottoRow('sm-mp-rows', 'MP', v, 'Inserimento manuale', 'kg')
+  document.getElementById('mp-scan-input').value = ''
+}
+</script>

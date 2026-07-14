@@ -1,0 +1,90 @@
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-label">Lotti MP totali</div>
+    <div class="kpi-value kpi-verde"><%= kpi.mp %></div>
+    <div class="kpi-sub">in magazzino</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Lavorazioni SM attive</div>
+    <div class="kpi-value kpi-viola"><%= kpi.sm %></div>
+    <div class="kpi-sub">disponibili + in uso</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Ordini PF in corso</div>
+    <div class="kpi-value kpi-amber"><%= kpi.pf %></div>
+    <div class="kpi-sub">in corso + in attesa</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Spedizioni totali</div>
+    <div class="kpi-value"><%= kpi.sped %></div>
+    <div class="kpi-sub">DDT emessi</div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <div class="card-title"><i class="ti ti-layers"></i>Flusso lotti</div>
+    <a href="/mp" class="flow-step flow-step-mp">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0;"></span>
+        <span style="font-size:13px;font-weight:700;">Materie prime ricevute</span>
+      </div>
+      <span class="pill pill-verde"><%= kpi.mp %> lotti</span>
+    </a>
+    <div style="text-align:center;color:#ddd;font-size:20px;margin:2px 0;">↓</div>
+    <a href="/sm" class="flow-step flow-step-sm">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0;"></span>
+        <span style="font-size:13px;font-weight:700;">Lavorazioni SM</span>
+      </div>
+      <span class="pill pill-viola"><%= kpi.sm %> attive</span>
+    </a>
+    <div style="text-align:center;color:#ddd;font-size:20px;margin:2px 0;">↓</div>
+    <a href="/pf" class="flow-step flow-step-pf">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0;"></span>
+        <span style="font-size:13px;font-weight:700;">Prodotti finiti</span>
+      </div>
+      <span class="pill pill-amber"><%= kpi.pf %> ordini</span>
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="ti ti-activity"></i>Ultimi movimenti</div>
+    <% if (movimenti.length === 0) { %>
+      <div class="empty"><i class="ti ti-inbox"></i><p>Nessun movimento ancora</p></div>
+    <% } else { %>
+      <% movimenti.forEach(m => { %>
+        <div class="mov-item">
+          <span class="pill pill-<%= m.tipo==='MP'?'verde':m.tipo==='SM'?'viola':'amber' %>" style="flex-shrink:0;font-size:10px;"><%= m.tipo %></span>
+          <div style="flex:1;min-width:0;">
+            <div class="mono" style="font-size:11px;"><%= m.codice %></div>
+            <div style="font-size:12px;color:var(--grigio);"><%= m.descr %></div>
+          </div>
+          <span style="font-size:12px;color:var(--grigio);flex-shrink:0;"><%= m.ora %></span>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title"><i class="ti ti-building-factory-2"></i>Ordini PF attivi</div>
+  <% if (ordini.length === 0) { %>
+    <div class="empty"><i class="ti ti-package"></i><p>Nessun ordine attivo</p></div>
+  <% } else { %>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Lotto PF</th><th>Articolo</th><th>Qty</th><th>Stato</th></tr></thead>
+      <tbody>
+        <% ordini.forEach(o => { %>
+          <tr>
+            <td class="mono"><%= o.codice %></td>
+            <td><%= o.articolo_descrizione %></td>
+            <td><%= (o.quantita||0).toLocaleString('it-IT') %> pz</td>
+            <td><span class="pill pill-<%= o.stato==='in_corso'?'verde':'amber' %>"><%= o.stato %></span></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  <% } %>
+</div>
