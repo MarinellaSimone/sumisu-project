@@ -24,8 +24,30 @@ app.use(session({
   cookie:            { secure: false, maxAge: 8 * 60 * 60 * 1000 }
 }))
 
+// ── FLASH & AUTH CONTEXT ───────────────────────────────────────────────────
+app.use((req, res, next) => {
+  res.locals.user = req.session.user
+  if (req.session.flash) {
+    res.locals.flash = req.session.flash
+    delete req.session.flash
+  }
+  next()
+})
+
 // ── STATIC ────────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')))
+
+// ── AUTH GUARD ─────────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  const openPaths = ['/login', '/logout']
+  if (openPaths.includes(req.path)) {
+    return next()
+  }
+  if (!req.session.user) {
+    return res.redirect('/login')
+  }
+  next()
+})
 
 // ── VIEW ENGINE (EJS manual render) ──────────────────────────────────────
 // Usiamo EJS per i partials ma rendiamo le pagine come stringhe inline
