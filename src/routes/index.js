@@ -2,6 +2,9 @@ const express = require('express')
 const router  = express.Router()
 const sb      = require('../supabase')
 
+const AUTH_USER = process.env.AUTH_USER || 'admin'
+const AUTH_PASS = process.env.AUTH_PASS || 'admin'
+
 // ─── helpers ───────────────────────────────────────────────────────────────
 function render(res, page, data = {}) {
   res.render('layout', { ...data, body: require('fs').readFileSync(
@@ -13,6 +16,28 @@ function today() {
   const d = new Date()
   return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`
 }
+
+router.get('/login', (req, res) => {
+  if (req.session.user) return res.redirect('/')
+  render(res, 'login', { title: 'Accesso', loginPage: true })
+})
+
+router.post('/login', (req, res) => {
+  const { username, password } = req.body || {}
+  if (username === AUTH_USER && password === AUTH_PASS) {
+    req.session.user = { name: username }
+    return res.redirect('/')
+  }
+
+  req.session.flash = { type: 'error', msg: 'Utente o password non valida' }
+  res.redirect('/login')
+})
+
+router.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/login')
+  })
+})
 
 async function nextProg(table, prefix) {
   const { count } = await sb.from(table).select('*', { count: 'exact', head: true })

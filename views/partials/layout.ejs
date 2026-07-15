@@ -7,9 +7,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
 <link rel="stylesheet" href="/css/app.css">
 </head>
-<body>
+<body class="<%= typeof loginPage !== 'undefined' && loginPage ? 'auth-page' : '' %>">
+<% if (typeof loginPage === 'undefined' || !loginPage) { %>
 <div class="shell">
-
+  
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-logo">
@@ -53,9 +54,10 @@
         <span class="topbar-badge"><i class="ti ti-alert-triangle"></i><%= badge %></span>
         <% } %>
         <div class="topbar-user">
-          <div class="user-avatar">OP</div>
-          Operatore
+          <div class="user-avatar"><%= user && user.name ? user.name[0].toUpperCase() : 'OP' %></div>
+          <span><%= user && user.name ? user.name : 'Operatore' %></span>
         </div>
+        <a href="/logout" class="topbar-logout">Esci</a>
       </div>
     </header>
 
@@ -70,6 +72,33 @@
     </main>
   </div>
 </div>
+<% } else { %>
+  <div class="auth-shell">
+    <main class="auth-main">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="sidebar-logo-mark auth-logo-mark">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M17 6C17 6 14 4 10 5C7 6 6 8 7 10C8 12 12 12 14 14C16 16 15 18 12 19C9 20 6 18 6 18"
+                stroke="#6b5bb5" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="auth-brand">
+            <div class="auth-brand-title">TrackPack</div>
+            <div class="auth-brand-sub">Accesso al gestionale</div>
+          </div>
+        </div>
+        <% if (typeof flash !== 'undefined' && flash) { %>
+          <div class="alert alert-<%= flash.type %>">
+            <i class="ti ti-<%= flash.type==='success'?'circle-check':'alert-triangle' %>"></i>
+            <%= flash.msg %>
+          </div>
+        <% } %>
+        <%- body %>
+      </div>
+    </main>
+  </div>
+<% } %>
 
 <div id="toast"></div>
 
