@@ -1,235 +1,108 @@
-# TrackPack App
-### Gestionale tracciabilità packaging alimentare — UI ispirata a Sumisu
+# TrackPack — Gestionale tracciabilità packaging
 
-Stack: **Node.js + Express + Supabase + EJS**
+App Node.js + Express + Supabase (PostgreSQL) generata dal mock `trackpack_login_mock`.
+Autenticazione a sessione con ruoli **admin** / **operatore**, tracciabilità completa
+MP → SM → PF → DDT.
 
----
+## Stack
+- **Node.js + Express** — server e API REST
+- **Supabase** (PostgreSQL) — database
+- **express-session** — sessioni server-side (cookie httpOnly)
+- **bcryptjs** — hashing password
+- **EJS** — rendering delle pagine
 
-## 1. Setup Supabase
-
-1. Vai su [supabase.com](https://supabase.com) e crea un account gratuito
-2. Clicca **New project** — scegli un nome (es. `trackpack`), regione EU (Frankfurt)
-3. Aspetta ~2 minuti che il progetto venga creato
-4. Vai su **Settings → API**:
-   - Copia il **Project URL** (es. `https://abcdefgh.supabase.co`)
-   - Copia la **anon public key** (lunga stringa JWT)
-5. Vai su **SQL Editor** e incolla il contenuto di `supabase_schema.sql`, poi clicca **Run**
-6. Il database è pronto con tabelle e dati di esempio
-
----
-
-## 2. Configurazione
-
-Copia `.env.example` in `.env` e compila:
-
-```bash
-cp .env.example .env
+## Struttura
+```
+trackpack/
+├── .env                  # variabili (già compilato con i tuoi valori)
+├── .env.example
+├── package.json
+├── db/
+│   ├── schema.sql        # schema DB da eseguire su Supabase
+│   └── seed.js           # popolamento utenti + dati demo
+├── src/
+│   ├── server.js         # entry point
+│   ├── supabase.js       # client Supabase
+│   ├── lotto.js          # generatori codici lotto (LT/SM/PF/DDT)
+│   ├── middleware/auth.js
+│   └── routes/
+│       ├── auth.js       # login / logout
+│       └── api.js        # tutte le API dati
+├── views/                # login.ejs, app.ejs, 403.ejs
+└── public/               # css, js client, logo
 ```
 
-Modifica `.env`:
+## Setup
 
-```env
-SUPABASE_URL=https://il-tuo-progetto.supabase.co
-SUPABASE_ANON_KEY=eyJhbGci...la-tua-chiave...
-SESSION_SECRET=una-stringa-casuale-lunga
+### 1. Configura le variabili
+Il file `.env` è già presente con i valori che hai fornito. Sostituisci
+`SUPABASE_URL` e `SUPABASE_ANON_KEY` con quelli reali del tuo progetto Supabase
+(li trovi in *Project Settings → API*), e imposta un `SESSION_SECRET` casuale.
+
+```
+SUPABASE_URL=https://<tuo-progetto>.supabase.co
+SUPABASE_ANON_KEY=<anon key>
+SESSION_SECRET=<stringa-casuale-lunga>
 PORT=3000
 ```
 
----
+### 2. Crea lo schema del database
+Apri l'**SQL Editor** di Supabase, incolla il contenuto di `db/schema.sql`
+ed eseguilo una volta.
 
-## 3. Installazione e avvio
+> **RLS**: con la anon key valgono le Row Level Security policy di Supabase.
+> Per un gestionale interno la via più semplice è disattivare RLS sulle tabelle
+> (*Table editor → tabella → RLS: disable*), oppure usare una `service_role` key
+> lato server (da tenere segreta, mai nel client).
 
+### 3. Installa e popola
 ```bash
 npm install
-npm start
+npm run init-db      # crea utenti demo + anagrafiche + lotti di esempio
 ```
 
-Apri il browser su **http://localhost:3000**
-
-### Sviluppo (auto-reload):
+### 4. Avvia
 ```bash
-npm run dev
+npm start            # oppure: npm run dev  (auto-reload)
 ```
+App su **http://localhost:3000**
 
----
+## Credenziali demo
+| Username     | Password    | Ruolo     |
+|--------------|-------------|-----------|
+| `admin`      | `admin2026` | admin     |
+| `operatore1` | `pass123`   | operatore |
+| `operatore2` | `pass123`   | operatore (disabilitato) |
 
-## 4. Struttura progetto
+## Ruoli e permessi
+- **Operatore** — Dashboard, Ricevimento MP, Lavorazione SM, Produzione PF, Magazzino
+- **Admin** — tutto quanto sopra + Spedizioni/DDT, Anagrafiche, Rintracciabilità, Gestione utenti
 
-```
-trackpack-app/
-├── app.js                    ← Applicazione Express principale
-├── .env                      ← Variabili d'ambiente (da compilare)
-├── supabase_schema.sql       ← Schema DB da eseguire su Supabase
-├── public/
-│   ├── css/app.css           ← Stile con palette Sumisu (verde + viola)
-│   └── js/app.js             ← JS client: toast, modal, riciclo, traccia
-├── src/
-│   ├── supabase.js           ← Client Supabase
-│   └── routes/index.js       ← Tutte le route (8 sezioni)
-└── views/
-    ├── partials/layout.ejs   ← Layout con sidebar
-    └── pages/
-        ├── dashboard.ejs
-        ├── mp.ejs            ← Ricevimento MP
-        ├── sm.ejs            ← Lavorazione SM
-        ├── pf.ejs            ← Produzione PF (con codici riciclo)
-        ├── magazzino.ejs
-        ├── spedizioni.ejs
-        ├── anagrafiche.ejs
-        └── traccia.ejs       ← Rintracciabilità 3 colonne
-```
+I permessi sono applicati sia lato UI (voci di menu nascoste) sia lato server
+(le API riservate rispondono `403` agli operatori).
 
----
+## Moduli funzionali
+1. **Dashboard** — KPI live, lotti sotto soglia, ultimi movimenti, ordini PF attivi
+2. **Ricevimento MP** — registra materie prime, genera codice `LT-AAAAMMGG-MAT-NNN`
+3. **Lavorazione SM** — interna/esterna, consuma lotti MP, genera `SM-AAAAMMGG-TIPO-NNN`
+4. **Produzione PF** — collega lotti MP e SM, genera `PF-AAAAMMGG-ART-NNN`
+5. **Magazzino** — giacenze correnti MP / SM / PF
+6. **Spedizioni / DDT** — genera `DDT-AAAA-NNNN`, scarica le giacenze PF
+7. **Anagrafiche** — fornitori, materiali MP/SM, articoli PF (GTIN-14)
+8. **Rintracciabilità** — ricostruisce la catena a monte/valle da qualsiasi codice lotto
+9. **Gestione utenti** — crea/disabilita/elimina utenti, reset password
 
-## 5. Sezioni dell'app
+## Tracciabilità
+Le tabelle ponte `sm_consumi_mp`, `pf_consumi_mp`, `pf_consumi_sm` e
+`spedizioni_righe` registrano i legami tra lotti. La ricerca di rintracciabilità
+naviga questi legami in entrambe le direzioni:
+- da un lotto **MP** → verso gli SM/PF che lo hanno usato
+- da un lotto **PF** → verso SM, MP e il DDT di spedizione
 
-| Sezione | URL | Funzione |
-|---------|-----|----------|
-| Dashboard | `/` | KPI live, flusso lotti, ultimi movimenti |
-| Ricevimento MP | `/mp` | Inserimento e storico lotti materie prime |
-| Lavorazione SM | `/sm` | Lavorazioni interne/esterne con lotti MP |
-| Produzione PF | `/pf` | Ordini produzione + etichetta con codici riciclo |
-| Magazzino | `/magazzino` | Giacenze MP/SM/PF con tab |
-| Spedizioni | `/spedizioni` | Creazione DDT e storico |
-| Anagrafiche | `/anagrafiche` | Fornitori, materiali, articoli PF |
-| Rintracciabilità | `/traccia` | Catena completa da qualsiasi codice lotto |
-
----
-
-## 6. Palette colori Sumisu
-
-```css
---su-verde:  #b8cc8a   /* verde salvia */
---su-viola:  #6b5bb5   /* viola Sumisu */
-```
-
----
-
-## 7. Prossimi passi (Modulo 2)
-
-- [ ] Autenticazione utenti con Supabase Auth
-- [ ] Generazione PDF DDT reale (puppeteer o pdfkit)
-- [ ] Distinta base (BOM) per articolo PF
-- [ ] Stampa ZPL reale via TCP (Zebra ZD230)
-- [ ] Deploy su Railway: `railway up`
-
-
-## 8. Spiegazione progetto (come editare)
-
-Project structure is small and centered around a single Express app with EJS templates and static assets.
-
-Root files
-- `app.js`
-  - Main Express server.
-  - Loads `.env`, sets up middleware:
-    - helmet, morgan
-    - body parsing
-    - session support
-    - static file serving
-    - auth guard that redirects unauthenticated users to `/login`
-  - Mounts routes from `src/routes/index.js`
-  - Defines 404 and error handlers
-- `package.json`
-  - Node dependencies and startup scripts
-- `.env.example`
-  - Environment variables for Supabase, session secret, and auth credentials
-
-Backend code
-- `src/routes/index.js`
-  - Contains all app routes including dashboard, MP/SM/PF forms, trace API, and now `/login` + `/logout`
-  - Uses a small `render()` helper to load page templates from `views/pages/*.ejs`
-  - Uses Supabase client `sb` for database operations
-  - Contains page-specific logic and form handlers
-- `src/supabase.js`
-  - Creates and exports the Supabase client using `SUPABASE_URL` and `SUPABASE_ANON_KEY`
-
-Views
-- `views/partials/layout.ejs`
-  - Main page shell / layout wrapper
-  - Includes sidebar, topbar, flash messages, and page content area
-  - Renders different markup when `loginPage` is truthy, so the login page is shown without the normal app shell
-- `views/pages/*.ejs`
-  - Page-specific HTML fragments loaded into layout
-  - Existing app pages: `dashboard.ejs`, `mp.ejs`, `sm.ejs`, `pf.ejs`, `magazzino.ejs`, `spedizioni.ejs`, `anagrafiche.ejs`, `traccia.ejs`
-  - New login page: `views/pages/login.ejs`
-
-Static assets
-- `public/css/app.css`
-  - App styling and layout CSS
-  - Includes styles for sidebar, cards, forms, and also the auth/login page
-- `public/js/app.js`
-  - Client-side UI helpers: toast, modal, tabs, dynamic form rows, trace API fetch, etc.
-  - Not directly involved in login except general page behavior
-
-How login works
-- In `src/routes/index.js`
-  - `GET /login` renders `login.ejs` with `loginPage: true`
-  - `POST /login` checks `username`/`password` against `AUTH_USER` / `AUTH_PASS`
-  - Successful login stores `req.session.user`
-- In `app.js`
-  - Middleware sets `res.locals.user` and `res.locals.flash`
-  - Auth guard redirects all requests except `/login` and `/logout` to `/login` if no session user exists
-- In `views/partials/layout.ejs`
-  - Uses `loginPage` to choose between login layout and the normal sidebar app shell
-
-What to modify manually
-- Change login UI content: `views/pages/login.ejs`
-- Change login styles: `public/css/app.css`
-- Change auth credentials or add env-driven users: `.env.example`, or use real env file with `AUTH_USER` / `AUTH_PASS`
-- Change auth behavior or login flow: `src/routes/index.js`
-- Change global layout or app menu: `views/partials/layout.ejs`
-- Change page-specific forms and data logic: `src/routes/index.js` and corresponding `views/pages/*.ejs`
-
-
-
-Updated todo list
-
-For this app, the cleanest approach is:
-
-1. Keep business/data logic in the route (`src/routes/index.js`)
-2. Keep presentation in the EJS file (`views/pages/sm.ejs`)
-3. Keep client interaction in `public/js/app.js`
-
-
-### Best pattern for editing a page
-
-- In `src/routes/index.js`, compute anything the page needs before rendering:
-  - lists of options
-  - default values
-  - flags like `showAdvancedFields`
-  - derived values from the database
-- Pass those values in the render data object:
-  ```js
-  res.render('layout', {
-    title: 'Lavorazione SM',
-    tipi, fornitori, lottiMP,
-    storico,
-    showExternalFields: true,
-    body: require('fs').readFileSync(...),
-  })
-  ```
-- In `sm.ejs`, only use EJS for simple conditionals and loops:
-  - `<% if (showExternalFields) { %> ... <% } %>`
-  - `<% tipi.forEach(tipo => { %> ... <% }) %>`
-  - avoid complex expressions or business rules inside the template
-
-### For client-side behavior
-`sm.ejs` can include buttons or controls that call functions in `public/js/app.js`, like `setSMTipo('int')`.
-
-
-1. Add a dedicated page-specific function in `app.js`, for example `initSMPage()`
-2. Call it from `sm.ejs` with a small inline script, or attach it on DOM ready
-
-
-### When to create partials
-If `sm.ejs` gets large, break repeated sections into smaller includes:
-- `views/pages/sm-form.ejs`
-- `views/pages/sm-history.ejs`
-Then include:
-```ejs
-<%- include('sm-form') %>
-<%- include('sm-history') %>
-```
-
-
-
+## Note di produzione
+- Le sessioni sono in memoria (ok per singola istanza/demo). Per il deploy usa
+  `connect-pg-simple` verso il Postgres di Supabase (dipendenza già inclusa).
+- Imposta `cookie.secure = true` in `src/server.js` quando servi dietro HTTPS.
+- Le etichette/barcode del mock sono un layer di UI: qui l'app si concentra sulla
+  logica dati e sulla persistenza. Si possono reintrodurre come modale di stampa
+  a partire dai codici lotto generati.
