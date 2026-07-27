@@ -1,248 +1,462 @@
-// ── TOAST ─────────────────────────────────────────────────────────────────
-let _toastTimer
-function toast(msg, type = 'ok') {
-  const el = document.getElementById('toast')
-  if (!el) return
-  el.className = `show t-${type}`
-  el.innerHTML = `<i class="ti ti-${type==='ok'?'circle-check':type==='warn'?'alert-triangle':'x'}"></i>${msg}`
-  clearTimeout(_toastTimer)
-  _toastTimer = setTimeout(() => el.classList.remove('show'), 3500)
-}
+// ============================================================
+// TrackPack · client app.js
+// ============================================================
+const USER = window.__USER__;
+const PILL = { MP: 'pill-verde', SM: 'pill-viola', PF: 'pill-amber' };
+const STATO_PILL = {
+  Ok: 'pill-verde', Riserva: 'pill-amber', Soglia: 'pill-amber', Esaurito: 'pill-grigio',
+  Disponibile: 'pill-verde', 'In uso': 'pill-viola',
+  'In corso': 'pill-verde', Attesa: 'pill-amber', Completato: 'pill-viola', Pronto: 'pill-verde', Spedito: 'pill-grigio',
+  Consegnato: 'pill-verde', 'In transito': 'pill-viola', Annullato: 'pill-rosso',
+  Attivo: 'pill-verde', Sospeso: 'pill-amber', Bozza: 'pill-grigio',
+};
 
-// ── MODAL ─────────────────────────────────────────────────────────────────
-function openModal(id)  { document.getElementById(id)?.classList.add('open') }
-function closeModal(id) { document.getElementById(id)?.classList.remove('open') }
-document.addEventListener('click', e => {
-  if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open')
-})
-
-// ── TABS ──────────────────────────────────────────────────────────────────
-function switchTab(group, key) {
-  document.querySelectorAll(`[data-tab-group="${group}"]`).forEach(el => {
-    el.classList.toggle('on', el.dataset.tab === key)
-  })
-  document.querySelectorAll(`[data-tab-panel="${group}"]`).forEach(el => {
-    el.style.display = el.dataset.panel === key ? '' : 'none'
-  })
-}
-
-// ── TIPO LAVORAZIONE SM ───────────────────────────────────────────────────
-function setSMTipo(t) {
-  document.getElementById('sm-int')?.classList.toggle('on', t === 'int')
-  document.getElementById('sm-ext')?.classList.toggle('on', t === 'ext')
-  const fields = document.getElementById('sm-ext-fields')
-  if (fields) fields.style.display = t === 'ext' ? 'block' : 'none'
-  const inp = document.getElementById('sm-tipo-val')
-  if (inp) inp.value = t
-}
-
-// ── AGGIUNGI MODALITÀ SCAN MP ─────────────────────────────────────────────
-function setAddMPMode(m) {
-  document.getElementById('add-mp-manual')?.style && (document.getElementById('add-mp-manual').style.display = m === 'm' ? '' : 'none')
-  document.getElementById('add-mp-scan')?.style   && (document.getElementById('add-mp-scan').style.display   = m === 's' ? '' : 'none')
-  document.querySelector('[data-scan="m"]')?.classList.toggle('on', m === 'm')
-  document.querySelector('[data-scan="s"]')?.classList.toggle('on', m === 's')
-}
-
-// ── LOTTO PREVIEW (aggiorna in tempo reale) ───────────────────────────────
-function _ds() {
-  const d = new Date()
-  return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0')
-}
-
-function updateLottoMP() {
-  const mat = document.getElementById('r-mat')?.value || 'MAT'
-  const qty = document.getElementById('r-qty')?.value || '0'
-  const um  = document.getElementById('r-um')?.value  || 'kg'
-  const ddt = document.getElementById('r-ddt')?.value || '—'
-  const ped = document.getElementById('r-ped')?.value || '1'
-  const el  = document.getElementById('lotto-mp-preview')
-  if (el) {
-    el.querySelector('.lotto-code').textContent = `LT-${_ds()}-${mat}-NNN`
-    el.querySelector('.lotto-meta').textContent = `DDT ${ddt} · ${qty} ${um} · ${ped} pedane`
-  }
-}
-
-function updateLottoSM() {
-  const tipo = document.getElementById('s-tipo')?.value || 'TIPO'
-  const qty  = document.getElementById('s-qty')?.value  || '0'
-  const um   = document.getElementById('s-um')?.value   || 'pz'
-  const el   = document.getElementById('lotto-sm-preview')
-  if (el) {
-    el.querySelector('.lotto-code').textContent = `SM-${_ds()}-${tipo}-NNN`
-    el.querySelector('.lotto-meta').textContent = `${parseInt(qty).toLocaleString('it-IT')} ${um}`
-  }
-}
-
-function updateLottoPF() {
-  const art = document.getElementById('p-art')?.value || 'ART'
-  const qty = document.getElementById('p-qty')?.value || '0'
-  const el  = document.getElementById('lotto-pf-preview')
-  if (el) {
-    el.querySelector('.lotto-code').textContent = `PF-${_ds()}-${art}-NNN`
-    el.querySelector('.lotto-meta').textContent = `${parseInt(qty).toLocaleString('it-IT')} pz`
-  }
-}
-
-// ── LOTTI COLLEGATI (righe dinamiche MP/SM) ───────────────────────────────
-function addLottoRow(containerId, tipo, codice, descr, unita) {
-  const wrap = document.getElementById(containerId)
-  if (!wrap) return
-  const id = Date.now()
-  const cls = tipo === 'MP' ? 'pill-verde' : 'pill-viola'
-  const html = `
-    <div class="mprow" id="row-${id}">
-      <span class="pill ${cls}" style="flex-shrink:0;font-size:10px;">${tipo}</span>
-      <div class="mprow-info">
-        <div class="mprow-code">${codice}</div>
-        <div class="mprow-sub">${descr}</div>
-      </div>
-      <input type="hidden" name="lotti_${tipo.toLowerCase()}[]" value="${codice}">
-      <input type="number" name="qty_${tipo.toLowerCase()}[]" value="0" min="0" class="mprow-qty"/>
-      <span style="font-size:12px;color:var(--grigio);flex-shrink:0;">${unita}</span>
-      <button type="button" class="rm-btn" onclick="document.getElementById('row-${id}').remove()">×</button>
-    </div>`
-  wrap.insertAdjacentHTML('beforeend', html)
-}
-
-// ── CODICI RICICLO ────────────────────────────────────────────────────────
-const RICICLO_LABELS = {
-  pap:'PAP 21', ldpe:'LDPE 4', pet:'PET 1', pp:'PP 5',
-  alu:'ALU', gl:'GL 70', c6:'C/PAP 6', fe:'FE 40'
-}
-let selRiciclo = new Set()
-
-function toggleRiciclo(code) {
-  const el = document.getElementById('ric-'+code)
-  if (!el) return
-  selRiciclo.has(code) ? (selRiciclo.delete(code), el.classList.remove('sel'))
-                       : (selRiciclo.add(code),    el.classList.add('sel'))
-  document.getElementById('riciclo-val').value = [...selRiciclo].join(',')
-  aggiornaLabelPF()
-}
-
-function aggiornaLabelPF() {
-  const hasFork    = document.getElementById('chk-fork')?.checked
-  const showIcons  = hasFork || selRiciclo.size > 0
-  const iconsArea  = document.getElementById('pf-icons-area')
-  const legalArea  = document.getElementById('pf-legal')
-  const forkIcon   = document.getElementById('icon-fork-wrap')
-  const legalIdon  = document.getElementById('legal-idoneo')
-  const preview    = document.getElementById('riciclo-preview')
-
-  if (iconsArea)  iconsArea.style.display  = showIcons ? 'flex' : 'none'
-  if (legalArea)  legalArea.style.display  = showIcons ? 'block': 'none'
-  if (forkIcon)   forkIcon.style.display   = hasFork   ? 'flex' : 'none'
-  if (legalIdon)  legalIdon.style.display  = hasFork   ? 'inline':'none'
-  if (preview) {
-    preview.innerHTML = [...selRiciclo].map(code => `
-      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-        <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
-          <path d="M15 3L21 13H17.5V19H12.5V13H9Z" fill="#333" opacity=".9"/>
-          <path d="M7 19C7 24 10.5 27 15 27C19.5 27 23 24 23 19" fill="none" stroke="#333" stroke-width="1.8"/>
-          <path d="M4.5 17L7.5 21L10.5 17" fill="none" stroke="#333" stroke-width="1.8"/>
-        </svg>
-        <span style="font-size:9px;font-weight:700;font-family:Arial">${RICICLO_LABELS[code]}</span>
-      </div>`).join('')
-  }
-}
-
-// ── RINTRACCIABILITÀ (fetch API) ──────────────────────────────────────────
-async function doTrace() {
-  const codice = document.getElementById('trace-input')?.value.trim()
-  if (!codice) return
-
-  const resEl = document.getElementById('trace-result')
-  resEl && (resEl.style.display = 'none')
-
-  try {
-    const res  = await fetch(`/api/traccia/${encodeURIComponent(codice)}`)
-    const data = await res.json()
-    if (!res.ok) { toast(data.error || 'Lotto non trovato', 'err'); return }
-    renderTrace(data)
-    resEl && (resEl.style.display = 'block')
-  } catch(e) {
-    toast('Errore di rete', 'err')
-  }
-}
-
-function renderTrace(data) {
-  // catena
-  const chain = document.getElementById('trace-chain')
-  if (chain) {
-    chain.innerHTML = data.catena.map((n, i) =>
-      (i > 0 ? '<span class="chain-arrow">→</span>' : '') +
-      `<div class="chain-node" style="background:${n.bg};color:${n.tx};border-color:${n.bd}">
-        <span style="opacity:.6;font-size:10px;margin-right:4px;">${n.tipo}</span>${n.codice}
-      </div>`
-    ).join('')
-  }
-  // MP
-  const mp = document.getElementById('trace-mp-body')
-  if (mp) mp.innerHTML = data.lotti_mp.length
-    ? data.lotti_mp.map(r => `<tr>
-        <td class="mono">${r.codice}</td>
-        <td class="mono">${r.ddt_numero||'—'}</td>
-        <td>${r.materiale_descrizione}</td>
-        <td>${r.fornitore||'—'}</td>
-        <td>${r.ddt_data||'—'}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="5" style="text-align:center;color:#bbb;font-style:italic;padding:12px;">Nessuna MP trovata</td></tr>'
-  // SM
-  const sm = document.getElementById('trace-sm-body')
-  if (sm) sm.innerHTML = data.lotti_sm.length
-    ? data.lotti_sm.map(r => `<tr>
-        <td class="mono">${r.codice}</td>
-        <td class="mono">${r.ddt_numero||'—'}</td>
-        <td>${r.tipo_descrizione}</td>
-        <td><span class="pill ${r.tipo_lavorazione==='interna'?'pill-grigio':'pill-verde'}">${r.tipo_lavorazione||'—'}</span></td>
-        <td>${r.data_lavorazione||'—'}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="5" style="text-align:center;color:#bbb;font-style:italic;padding:12px;">Nessun SM trovato</td></tr>'
-  // Destinazioni
-  const dst = document.getElementById('trace-dst-body')
-  if (dst) dst.innerHTML = data.spedizioni.length
-    ? data.spedizioni.map(r => `<tr>
-        <td class="mono">${r.lotto_pf}</td>
-        <td class="mono">${r.ddt_numero}</td>
-        <td>${r.cliente}</td>
-        <td>${r.data_spedizione||'—'}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="4" style="text-align:center;color:#bbb;font-style:italic;padding:12px;">Nessuna destinazione</td></tr>'
-
-  // titolo
-  const t = document.getElementById('trace-title')
-  if (t) t.textContent = data.codice_cercato
-}
-
-// ── FETCH helper ──────────────────────────────────────────────────────────
-async function apiPost(url, body) {
-  const res  = await fetch(url, {
-    method: 'POST',
+// ---- fetch helper ----
+async function api(url, opts = {}) {
+  const r = await fetch('/api' + url, {
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  })
-  return res.json()
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Errore');
+  return data;
 }
 
-// ── INLINE "AGGIUNGI" per select con opzione __new__ ─────────────────────
-function handleNewOption(selectEl, inlineId) {
-  if (selectEl.value === '__new__') {
-    selectEl.value = ''
-    document.getElementById(inlineId)?.style && (document.getElementById(inlineId).style.display = 'block')
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function pill(txt, cls) { return `<span class="pill ${cls || 'pill-grigio'}">${esc(txt)}</span>`; }
+function statoPill(s) { return pill(s, STATO_PILL[s]); }
+function fmt(n) { return Number(n || 0).toLocaleString('it-IT'); }
+function today() { return new Date().toISOString().slice(0, 10); }
+
+// ---- Toast ----
+function showToast(msg, type = 'ok') {
+  let t = document.getElementById('_toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '_toast';
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:999;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1.5px solid;transition:opacity .25s;';
+    document.body.appendChild(t);
   }
+  const ok = type === 'ok';
+  t.style.background = ok ? 'var(--verdel)' : 'var(--rossol)';
+  t.style.borderColor = ok ? 'var(--verdeld)' : '#f7c1c1';
+  t.style.color = ok ? 'var(--violad)' : 'var(--rosso)';
+  t.innerHTML = `<i class="ti ti-${ok ? 'circle-check' : 'alert-triangle'}"></i>${esc(msg)}`;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => (t.style.opacity = '0'), 3200);
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  // active nav
-  const path = location.pathname
-  document.querySelectorAll('.nav-item').forEach(a => {
-    a.classList.toggle('active', a.getAttribute('href') === path)
-  })
-  // fade alerts
-  document.querySelectorAll('.alert').forEach(el => {
-    setTimeout(() => el.style.opacity = '0', 3000)
-    setTimeout(() => el.remove(), 3500)
-  })
-})
+function loading(on, msg = 'Salvataggio…') {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none';
+}
+
+// ---- Navigazione ----
+const LOADERS = {
+  dash: loadDashboard, mp: loadMP, sm: loadSM, pf: loadPF,
+  mag: () => loadMag('mp'), sped: loadSped, ana: loadAna, traccia: () => {}, utenti: loadUtenti,
+};
+function goPage(id, title) {
+  document.querySelectorAll('.page').forEach((p) => p.classList.remove('on'));
+  document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
+  document.getElementById('page-' + id)?.classList.add('on');
+  document.getElementById('ni-' + id)?.classList.add('active');
+  document.getElementById('page-title').textContent = title;
+  if (LOADERS[id]) LOADERS[id]();
+}
+
+async function doLogout() {
+  await fetch('/logout', { method: 'POST' });
+  window.location.href = '/login';
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function loadDashboard() {
+  try {
+    const d = await api('/dashboard');
+    document.getElementById('kpi-mp').textContent = d.kpi.mp;
+    document.getElementById('kpi-sm').textContent = d.kpi.sm;
+    document.getElementById('kpi-pf').textContent = d.kpi.pf;
+    document.getElementById('kpi-soglia').textContent = d.kpi.sottoSoglia;
+
+    if (d.sottoSoglia.length) {
+      const txt = d.sottoSoglia.map((s) => `${s.descrizione} (${fmt(s.giacenza)} ${s.um})`).join(', ');
+      document.getElementById('alert-soglia-txt').innerHTML = `<strong>${d.sottoSoglia.length} lotti sotto soglia:</strong> ${esc(txt)}. Considera il riordino.`;
+      document.getElementById('alert-soglia').style.display = 'flex';
+    } else {
+      document.getElementById('alert-soglia').style.display = 'none';
+    }
+
+    document.getElementById('dash-movimenti').innerHTML = d.movimenti.length
+      ? d.movimenti.map((m) => `<div class="mov-item">${pill(m.tipo, PILL[m.tipo])}<div style="flex:1;min-width:0;"><div class="mono">${esc(m.codice)}</div><div style="font-size:12px;color:var(--grigio)">${esc(m.desc)}</div></div><span style="font-size:12px;color:var(--grigio);">${new Date(m.ts).toLocaleDateString('it-IT')}</span></div>`).join('')
+      : '<div class="empty"><i class="ti ti-inbox"></i><p>Nessun movimento</p></div>';
+
+    document.getElementById('dash-ordini').innerHTML = d.ordiniPF.length
+      ? d.ordiniPF.map((o) => `<tr><td class="mono">${esc(o.codice)}</td><td>${esc(o.articolo)}</td><td>${fmt(o.qty)} ${esc(o.um)}</td><td>${statoPill(o.stato)}</td></tr>`).join('')
+      : '<tr><td colspan="4"><div class="empty"><p>Nessun ordine</p></div></td></tr>';
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+// ============================================================
+// RICEVIMENTO MP
+// ============================================================
+async function loadMP() {
+  try {
+    const [forn, mat, lotti] = await Promise.all([api('/fornitori'), api('/materiali?tipo=MP'), api('/lotti-mp')]);
+    fillSelect('mp-fornitore', forn.map((f) => ({ v: f.id, t: f.ragione_sociale })), true);
+    fillSelect('mp-materiale', mat.map((m) => ({ v: m.id, t: `${m.codice} · ${m.descrizione}` })));
+    if (!document.getElementById('mp-data').value) document.getElementById('mp-data').value = today();
+    document.getElementById('mp-storico').innerHTML = lotti.map((l) =>
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td></tr>`
+    ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun ricevimento</p></div></td></tr>';
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+async function salvaMP(btn) {
+  const materiale_id = val('mp-materiale');
+  const ddt = val('mp-ddt'), qty = val('mp-qty');
+  if (!materiale_id) return showToast('Seleziona il materiale', 'err');
+  if (!ddt || !qty) return showToast('DDT e quantità obbligatori', 'err');
+  loading(true, 'Registrazione ricevimento…');
+  try {
+    const r = await api('/lotti-mp', { method: 'POST', body: {
+      fornitore_id: val('mp-fornitore') || null, materiale_id,
+      ddt_numero: ddt, ddt_data: val('mp-data'),
+      quantita: qty, unita_misura: val('mp-um'), n_pedane: val('mp-ped'), note: val('mp-note'),
+    }});
+    showToast(`Ricevimento registrato! Lotto ${r.codice_lotto}`);
+    ['mp-ddt', 'mp-qty', 'mp-note'].forEach((id) => (document.getElementById(id).value = ''));
+    loadMP();
+  } catch (e) { showToast(e.message, 'err'); }
+  finally { loading(false); }
+}
+
+// ============================================================
+// LAVORAZIONE SM
+// ============================================================
+let smTipo = 'int';
+let smConsumi = [];
+function setSMTipo(t) {
+  smTipo = t;
+  document.getElementById('sm-int').classList.toggle('on', t === 'int');
+  document.getElementById('sm-ext').classList.toggle('on', t === 'ext');
+  document.getElementById('sm-ext-box').style.display = t === 'ext' ? 'block' : 'none';
+}
+
+async function loadSM() {
+  try {
+    const [forn, mpLotti, lotti] = await Promise.all([api('/fornitori'), api('/lotti-mp'), api('/lotti-sm')]);
+    fillSelect('sm-fornitore', forn.map((f) => ({ v: f.id, t: f.ragione_sociale })), true, '— nessuno —');
+    window.__mpLotti = mpLotti;
+    fillSelect('sm-mp-sel', mpLotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto MP…');
+    if (!document.getElementById('sm-data').value) document.getElementById('sm-data').value = today();
+    smConsumi = []; renderSMConsumi();
+    document.getElementById('sm-storico').innerHTML = lotti.map((l) =>
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.tipo_semilavorato || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td></tr>`
+    ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessuna lavorazione</p></div></td></tr>';
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+function addSMConsumo() {
+  const id = val('sm-mp-sel'); if (!id) return;
+  if (smConsumi.find((c) => c.lotto_mp_id === id)) return showToast('Lotto già aggiunto', 'err');
+  const lotto = (window.__mpLotti || []).find((l) => l.id === id);
+  smConsumi.push({ lotto_mp_id: id, codice: lotto.codice_lotto, desc: lotto.materiali?.descrizione, disp: lotto.giacenza, um: lotto.unita_misura, quantita: 0 });
+  renderSMConsumi();
+}
+function renderSMConsumi() {
+  document.getElementById('sm-mp-rows').innerHTML = smConsumi.map((c, i) =>
+    `<div class="mp-row">${pill('MP', 'pill-verde')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" value="${c.quantita}" onchange="smConsumi[${i}].quantita=this.value" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="smConsumi.splice(${i},1);renderSMConsumi()">×</button></div>`
+  ).join('');
+}
+
+async function salvaSM(btn) {
+  const tipo = val('sm-tipo'), qty = val('sm-qty');
+  if (!tipo) return showToast('Inserisci il tipo di semilavorato', 'err');
+  loading(true, 'Registrazione SM…');
+  try {
+    const r = await api('/lotti-sm', { method: 'POST', body: {
+      tipo_semilavorato: tipo, lavorazione: smTipo === 'ext' ? 'esterna' : 'interna',
+      fornitore_sm_id: smTipo === 'ext' ? (val('sm-fornitore') || null) : null,
+      ddt_numero: val('sm-ddt'), ddt_data: val('sm-ddt-data'),
+      quantita: qty, unita_misura: val('sm-um'), data_lavorazione: val('sm-data'), note: val('sm-note'),
+      consumi: smConsumi.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
+    }});
+    showToast(`Lavorazione SM registrata! Lotto ${r.codice_lotto}`);
+    ['sm-tipo', 'sm-note'].forEach((id) => (document.getElementById(id).value = ''));
+    document.getElementById('sm-qty').value = 0;
+    loadSM();
+  } catch (e) { showToast(e.message, 'err'); }
+  finally { loading(false); }
+}
+
+// ============================================================
+// PRODUZIONE PF
+// ============================================================
+let pfConsumiMP = [], pfConsumiSM = [];
+async function loadPF() {
+  try {
+    const [art, mpLotti, smLotti, lotti] = await Promise.all([api('/articoli'), api('/lotti-mp'), api('/lotti-sm'), api('/lotti-pf')]);
+    fillSelect('pf-art', art.map((a) => ({ v: a.id, t: `${a.codice} · ${a.descrizione}` })));
+    window.__mpLotti = mpLotti; window.__smLotti = smLotti;
+    fillSelect('pf-mp-sel', mpLotti.map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto MP…');
+    fillSelect('pf-sm-sel', smLotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.tipo_semilavorato || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto SM…');
+    pfConsumiMP = []; pfConsumiSM = []; renderPFConsumi();
+    document.getElementById('pf-storico').innerHTML = lotti.map((l) =>
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td></tr>`
+    ).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessun ordine</p></div></td></tr>';
+  } catch (e) { showToast(e.message, 'err'); }
+}
+function addPFConsumoMP() {
+  const id = val('pf-mp-sel'); if (!id) return;
+  if (pfConsumiMP.find((c) => c.lotto_mp_id === id)) return showToast('Lotto già aggiunto', 'err');
+  const l = (window.__mpLotti || []).find((x) => x.id === id);
+  pfConsumiMP.push({ lotto_mp_id: id, codice: l.codice_lotto, desc: l.materiali?.descrizione, disp: l.giacenza, um: l.unita_misura, quantita: 0 });
+  renderPFConsumi();
+}
+function addPFConsumoSM() {
+  const id = val('pf-sm-sel'); if (!id) return;
+  if (pfConsumiSM.find((c) => c.lotto_sm_id === id)) return showToast('Lotto già aggiunto', 'err');
+  const l = (window.__smLotti || []).find((x) => x.id === id);
+  pfConsumiSM.push({ lotto_sm_id: id, codice: l.codice_lotto, desc: l.tipo_semilavorato, disp: l.giacenza, um: l.unita_misura, quantita: 0 });
+  renderPFConsumi();
+}
+function renderPFConsumi() {
+  document.getElementById('pf-mp-rows').innerHTML = pfConsumiMP.map((c, i) =>
+    `<div class="mp-row">${pill('MP', 'pill-verde')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" value="${c.quantita}" onchange="pfConsumiMP[${i}].quantita=this.value" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="pfConsumiMP.splice(${i},1);renderPFConsumi()">×</button></div>`
+  ).join('');
+  document.getElementById('pf-sm-rows').innerHTML = pfConsumiSM.map((c, i) =>
+    `<div class="mp-row">${pill('SM', 'pill-viola')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" value="${c.quantita}" onchange="pfConsumiSM[${i}].quantita=this.value" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="pfConsumiSM.splice(${i},1);renderPFConsumi()">×</button></div>`
+  ).join('');
+}
+async function salvaPF(btn) {
+  const art = val('pf-art'), qty = val('pf-qty');
+  if (!art) return showToast('Seleziona un articolo', 'err');
+  if (!qty || qty <= 0) return showToast('Inserisci la quantità', 'err');
+  loading(true, 'Avvio produzione…');
+  try {
+    const r = await api('/lotti-pf', { method: 'POST', body: {
+      articolo_id: art, quantita: qty, unita_misura: 'pz',
+      consumi_mp: pfConsumiMP.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
+      consumi_sm: pfConsumiSM.map((c) => ({ lotto_sm_id: c.lotto_sm_id, quantita: c.quantita, unita_misura: c.um })),
+    }});
+    showToast(`Ordine PF avviato! Lotto ${r.codice_lotto}`);
+    document.getElementById('pf-qty').value = 0;
+    loadPF();
+  } catch (e) { showToast(e.message, 'err'); }
+  finally { loading(false); }
+}
+
+// ============================================================
+// MAGAZZINO
+// ============================================================
+function magTab(t, btn) {
+  document.querySelectorAll('#page-mag .tab-btn').forEach((b) => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  loadMag(t);
+}
+async function loadMag(tipo) {
+  try {
+    const rows = await api('/magazzino/' + tipo);
+    document.getElementById('mag-body').innerHTML = rows.length
+      ? rows.map((r) => `<tr><td class="mono">${esc(r.codice)}</td><td>${esc(r.desc || '')}</td><td>${fmt(r.giacenza)} ${esc(r.um)}</td><td>${statoPill(r.stato)}</td></tr>`).join('')
+      : '<tr><td colspan="4"><div class="empty"><i class="ti ti-package"></i><p>Magazzino vuoto</p></div></td></tr>';
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+// ============================================================
+// SPEDIZIONI
+// ============================================================
+let spedRighe = [];
+async function loadSped() {
+  try {
+    const [pfLotti, storico] = await Promise.all([api('/lotti-pf'), api('/spedizioni')]);
+    window.__pfLotti = pfLotti;
+    const spedibili = pfLotti.filter((l) => l.giacenza > 0 && l.stato !== 'Spedito');
+    fillSelect('sped-pf-sel', spedibili.map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.articoli_pf?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto PF…');
+    if (!document.getElementById('sped-data').value) document.getElementById('sped-data').value = today();
+    spedRighe = []; renderSpedRighe();
+    document.getElementById('sped-storico').innerHTML = storico.map((s) =>
+      `<tr><td class="mono">${esc(s.ddt_numero)}</td><td>${esc(s.cliente)}</td><td>${s.data_spedizione ? new Date(s.data_spedizione).toLocaleDateString('it-IT') : '—'}</td><td>${statoPill(s.stato)}</td></tr>`
+    ).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessuna spedizione</p></div></td></tr>';
+  } catch (e) { showToast(e.message, 'err'); }
+}
+function addSpedRiga() {
+  const id = val('sped-pf-sel'); if (!id) return;
+  if (spedRighe.find((r) => r.lotto_pf_id === id)) return showToast('Lotto già aggiunto', 'err');
+  const l = (window.__pfLotti || []).find((x) => x.id === id);
+  spedRighe.push({ lotto_pf_id: id, codice: l.codice_lotto, desc: l.articoli_pf?.descrizione, disp: l.giacenza, um: l.unita_misura, quantita: l.giacenza });
+  renderSpedRighe();
+}
+function renderSpedRighe() {
+  document.getElementById('sped-pf-rows').innerHTML = spedRighe.map((r, i) =>
+    `<div class="mp-row">${pill('PF', 'pill-amber')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(r.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(r.desc || '')} · ${fmt(r.disp)} ${esc(r.um)} disp.</div></div><input class="fi" type="number" value="${r.quantita}" max="${r.disp}" onchange="spedRighe[${i}].quantita=this.value" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(r.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="spedRighe.splice(${i},1);renderSpedRighe()">×</button></div>`
+  ).join('');
+}
+async function salvaSped(btn) {
+  const cliente = val('sped-cliente');
+  if (!cliente) return showToast('Inserisci il cliente', 'err');
+  if (!spedRighe.length) return showToast('Aggiungi almeno un lotto PF', 'err');
+  loading(true, 'Generazione DDT…');
+  try {
+    const r = await api('/spedizioni', { method: 'POST', body: {
+      cliente, data_spedizione: val('sped-data'), vettore: val('sped-vettore'), note: val('sped-note'),
+      righe: spedRighe.map((x) => ({ lotto_pf_id: x.lotto_pf_id, quantita: x.quantita, unita_misura: x.um })),
+    }});
+    showToast(`Spedizione confermata! ${r.ddt_numero} generato.`);
+    ['sped-cliente', 'sped-vettore', 'sped-note'].forEach((id) => (document.getElementById(id).value = ''));
+    loadSped();
+  } catch (e) { showToast(e.message, 'err'); }
+  finally { loading(false); }
+}
+
+// ============================================================
+// ANAGRAFICHE
+// ============================================================
+function anaTab(t, btn) {
+  ['f', 'm', 'a'].forEach((k) => (document.getElementById('ana-' + k).style.display = k === t ? '' : 'none'));
+  document.querySelectorAll('#page-ana .tab-btn').forEach((b) => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+}
+async function loadAna() {
+  try {
+    const [forn, mat, art] = await Promise.all([api('/fornitori'), api('/materiali'), api('/articoli')]);
+    document.getElementById('ana-f-body').innerHTML = forn.map((f) =>
+      `<tr><td>${esc(f.ragione_sociale)}</td><td class="mono">${esc(f.piva || '—')}</td><td>${statoPill(f.stato)}</td></tr>`).join('') || '<tr><td colspan="3"><div class="empty"><p>Nessun fornitore</p></div></td></tr>';
+    document.getElementById('ana-m-body').innerHTML = mat.map((m) =>
+      `<tr><td class="mono">${esc(m.codice)}</td><td>${esc(m.descrizione)}</td><td>${pill(m.tipo, m.tipo === 'MP' ? 'pill-verde' : 'pill-viola')}</td><td>${esc(m.unita_misura)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessun materiale</p></div></td></tr>';
+    document.getElementById('ana-a-body').innerHTML = art.map((a) =>
+      `<tr><td class="mono">${esc(a.codice)}</td><td>${esc(a.descrizione)}</td><td class="mono">${esc(a.gtin14 || '—')}</td><td>${statoPill(a.stato)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessun articolo</p></div></td></tr>';
+  } catch (e) { showToast(e.message, 'err'); }
+}
+async function addFornitore(btn) {
+  const ragione_sociale = val('af-nome');
+  if (!ragione_sociale) return showToast('Ragione sociale obbligatoria', 'err');
+  try {
+    await api('/fornitori', { method: 'POST', body: { ragione_sociale, piva: val('af-piva'), stato: val('af-stato') } });
+    showToast('Fornitore aggiunto');
+    ['af-nome', 'af-piva'].forEach((id) => (document.getElementById(id).value = ''));
+    loadAna();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+async function addMateriale(btn) {
+  const codice = val('am-cod'), descrizione = val('am-desc');
+  if (!codice || !descrizione) return showToast('Codice e descrizione obbligatori', 'err');
+  try {
+    await api('/materiali', { method: 'POST', body: { codice, descrizione, tipo: val('am-tipo'), unita_misura: val('am-um'), soglia_minima: val('am-soglia') } });
+    showToast('Materiale aggiunto');
+    ['am-cod', 'am-desc'].forEach((id) => (document.getElementById(id).value = ''));
+    loadAna();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+async function addArticolo(btn) {
+  const codice = val('aa-cod'), descrizione = val('aa-desc');
+  if (!codice || !descrizione) return showToast('Codice e descrizione obbligatori', 'err');
+  try {
+    await api('/articoli', { method: 'POST', body: { codice, descrizione, gtin14: val('aa-gtin'), stato: val('aa-stato') } });
+    showToast('Articolo aggiunto');
+    ['aa-cod', 'aa-desc', 'aa-gtin'].forEach((id) => (document.getElementById(id).value = ''));
+    loadAna();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+// ============================================================
+// RINTRACCIABILITÀ
+// ============================================================
+async function doTrace() {
+  const v = val('trace-in').trim();
+  if (!v) return showToast('Inserisci un codice lotto', 'err');
+  loading(true, 'Ricostruzione catena…');
+  try {
+    const c = await api('/traccia/' + encodeURIComponent(v));
+    document.getElementById('trace-title').textContent = v;
+    const chain = [];
+    if (c.mp.length) chain.push({ t: 'MP', c: c.mp[0].codice, bg: 'var(--verdel)', tx: 'var(--violad)', bd: 'var(--verdeld)' });
+    if (c.sm.length) chain.push({ t: 'SM', c: c.sm[0].codice, bg: 'var(--violal)', tx: 'var(--viola)', bd: '#c5bfee' });
+    if (c.pf.length) chain.push({ t: 'PF', c: c.pf[0].codice, bg: 'var(--amberl)', tx: 'var(--amber)', bd: '#fac775' });
+    if (c.ddt.length) chain.push({ t: 'DDT', c: c.ddt[0].ddt, bg: 'var(--verdel)', tx: 'var(--violad)', bd: 'var(--verdeld)' });
+    document.getElementById('trace-chain').innerHTML = chain.map((n, i) =>
+      (i > 0 ? '<span style="color:#ccc;font-size:18px;">→</span>' : '') +
+      `<div style="font-size:11px;font-weight:700;padding:7px 12px;border-radius:20px;border:1.5px solid ${n.bd};background:${n.bg};color:${n.tx};font-family:'SF Mono',monospace;"><span style="opacity:.6;font-size:10px;margin-right:4px;">${n.t}</span>${esc(n.c)}</div>`
+    ).join('') || '<span style="color:var(--grigio);font-size:13px;">Nessuna catena trovata per questo codice.</span>';
+
+    document.getElementById('trace-mp').innerHTML = c.mp.map((r) => `<tr><td class="mono">${esc(r.codice)}</td><td>${esc(r.materiale || '')}</td><td>${esc(r.fornitore || '')}</td></tr>`).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
+    document.getElementById('trace-sm').innerHTML = c.sm.map((r) => `<tr><td class="mono">${esc(r.codice)}</td><td>${esc(r.tipo || '')}</td><td>${pill(r.lav === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td></tr>`).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
+    document.getElementById('trace-pf').innerHTML = c.pf.map((r) => {
+      const ddt = c.ddt[0] || {};
+      return `<tr><td class="mono">${esc(r.codice)}</td><td class="mono">${esc(ddt.ddt || '—')}</td><td>${esc(ddt.cliente || '—')}</td></tr>`;
+    }).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
+
+    document.getElementById('trace-res').style.display = 'block';
+  } catch (e) { showToast(e.message, 'err'); }
+  finally { loading(false); }
+}
+
+// ============================================================
+// GESTIONE UTENTI
+// ============================================================
+async function loadUtenti() {
+  try {
+    const utenti = await api('/utenti');
+    document.getElementById('utenti-body').innerHTML = utenti.map((u) => {
+      const isMe = u.id === USER.id;
+      const ruoloPill = u.ruolo === 'admin'
+        ? '<span class="pill pill-viola"><i class="ti ti-shield" style="font-size:10px;"></i> admin</span>'
+        : '<span class="pill pill-verde"><i class="ti ti-user" style="font-size:10px;"></i> operatore</span>';
+      const statoP = u.attivo ? statoPill('Attivo') : pill('Disabilitato', 'pill-grigio');
+      let azioni = '<span style="font-size:11px;color:#bbb;font-style:italic;">tu</span>';
+      if (!isMe) {
+        azioni = `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <button class="act-btn" onclick="toggleUtente('${u.id}',${!u.attivo})"><i class="ti ti-user-${u.attivo ? 'off' : 'check'}"></i>${u.attivo ? 'Disabilita' : 'Riabilita'}</button>
+          <button class="act-btn" onclick="resetPw('${u.id}')"><i class="ti ti-key"></i></button>
+          <button class="act-btn danger" onclick="delUtente('${u.id}','${esc(u.username)}')"><i class="ti ti-trash"></i></button>
+        </div>`;
+      }
+      return `<tr><td class="mono">${esc(u.username)}</td><td>${esc(u.nome)}</td><td>${ruoloPill}</td><td>${statoP}</td><td>${azioni}</td></tr>`;
+    }).join('');
+  } catch (e) { showToast(e.message, 'err'); }
+}
+async function addUtente(btn) {
+  const username = val('nu-user'), password = val('nu-pw');
+  if (!username || !password) return showToast('Username e password obbligatori', 'err');
+  if (password.length < 6) return showToast('Password minimo 6 caratteri', 'err');
+  try {
+    await api('/utenti', { method: 'POST', body: { username, nome: val('nu-nome'), ruolo: val('nu-ruolo'), password } });
+    showToast('Utente creato');
+    ['nu-user', 'nu-nome', 'nu-pw'].forEach((id) => (document.getElementById(id).value = ''));
+    loadUtenti();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+async function toggleUtente(id, attivo) {
+  try { await api(`/utenti/${id}/stato`, { method: 'PATCH', body: { attivo } }); showToast('Stato aggiornato'); loadUtenti(); }
+  catch (e) { showToast(e.message, 'err'); }
+}
+async function resetPw(id) {
+  const pw = prompt('Nuova password (min 6 caratteri):');
+  if (!pw) return;
+  try { await api(`/utenti/${id}/password`, { method: 'PATCH', body: { password: pw } }); showToast('Password aggiornata'); }
+  catch (e) { showToast(e.message, 'err'); }
+}
+async function delUtente(id, username) {
+  if (!confirm(`Eliminare l'utente "${username}"?`)) return;
+  try { await api(`/utenti/${id}`, { method: 'DELETE' }); showToast('Utente eliminato'); loadUtenti(); }
+  catch (e) { showToast(e.message, 'err'); }
+}
+
+// ============================================================
+// Helpers UI
+// ============================================================
+function val(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+function fillSelect(id, options, allowEmpty = false, emptyLabel = '— seleziona —') {
+  const el = document.getElementById(id); if (!el) return;
+  let html = allowEmpty || el.id.includes('-sel') ? `<option value="">${emptyLabel}</option>` : '';
+  html += options.map((o) => `<option value="${o.v}">${esc(o.t)}</option>`).join('');
+  el.innerHTML = html;
+}
+
+// Avvio
+goPage('dash', 'Dashboard');

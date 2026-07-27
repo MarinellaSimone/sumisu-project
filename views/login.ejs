@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrackPack · Accedi</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="view-login">
+  <div class="login-wrap">
+    <div class="logo-area">
+      <img src="/logo-sumisu.png" style="height:56px;width:auto;" alt="Sumisu">
+      <div class="logo-sub" style="margin-top:10px;">Gestionale tracciabilità packaging</div>
+    </div>
+    <div class="login-card">
+      <div class="field">
+        <label class="label">Username</label>
+        <div class="input-wrap">
+          <i class="ti ti-user input-icon"></i>
+          <input class="inp" type="text" id="login-user" placeholder="es. admin" value="admin" autocomplete="username">
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">Password</label>
+        <div class="input-wrap">
+          <i class="ti ti-lock input-icon"></i>
+          <input class="inp" type="password" id="login-pw" placeholder="••••••••" value="admin2026" autocomplete="current-password">
+          <button class="eye-btn" onclick="togglePW()"><i class="ti ti-eye" id="eye-login"></i></button>
+        </div>
+      </div>
+      <div id="login-err" style="display:none;" class="error-box">
+        <i class="ti ti-alert-triangle"></i><span id="login-err-msg">Username o password errati. Riprova.</span>
+      </div>
+      <button class="submit-btn" onclick="doLogin()"><i class="ti ti-login"></i>Accedi</button>
+      <div class="hint">
+        <i class="ti ti-info-circle"></i>
+        <div><strong>Demo:</strong> admin / admin2026 &nbsp;·&nbsp; operatore1 / pass123</div>
+      </div>
+    </div>
+    <div class="login-footer">TrackPack · Sumisu S.r.l. · 2026</div>
+  </div>
+</div>
+
+<script>
+function togglePW() {
+  const inp = document.getElementById('login-pw');
+  const ico = document.getElementById('eye-login');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  ico.className = inp.type === 'password' ? 'ti ti-eye' : 'ti ti-eye-off';
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pw').value;
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  try {
+    const r = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      document.getElementById('login-err-msg').textContent = data.error || 'Accesso negato';
+      err.style.display = 'flex';
+      return;
+    }
+    window.location.href = '/app';
+  } catch (e) {
+    document.getElementById('login-err-msg').textContent = 'Errore di connessione';
+    err.style.display = 'flex';
+  }
+}
+
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>

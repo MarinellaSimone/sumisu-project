@@ -1,19 +1,21 @@
 {
-  "name": "trackpack-app",
+  "name": "trackpack",
   "version": "1.0.0",
-  "description": "TrackPack - Gestionale tracciabilità packaging alimentare (Sumisu)",
-  "main": "app.js",
+  "description": "TrackPack — Gestionale tracciabilità packaging (Sumisu S.r.l. / Dulcibana)",
+  "main": "src/server.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "node app.js",
-    "dev": "node --watch app.js"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "init-db": "node db/seed.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/supabase-js": "^2.45.0",
+    "bcryptjs": "^2.4.3",
+    "connect-pg-simple": "^9.0.1",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
-    "express": "^4.21.0",
-    "express-session": "^1.18.1",
-    "helmet": "^8.0.0",
-    "morgan": "^1.10.0"
+    "express": "^4.19.2",
+    "express-session": "^1.18.0"
   }
 }
