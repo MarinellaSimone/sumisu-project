@@ -1,3 +1,14 @@
+# costants.js
+const LABEL_TYPES = Object.freeze({
+    MP: "MP",
+    SM: "SM",
+    PF: "PF"
+});
+
+module.exports = {
+    LABEL_TYPES
+};
+
 # lotto.js
 const supabase = require('./supabase');
 
@@ -122,14 +133,16 @@ app.get('/app', requireAuth, (req, res) => {
 app.use('/', authRoutes);
 app.use('/api', requireAuth, apiRoutes);
 
+// ---- Route barcode ----
+app.use("/barcode", barcodeRouter);
+
 // ---- 404 ----
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Endpoint non trovato' });
   res.status(404).send('Pagina non trovata');
 });
 
-// ---- Route barcode ----
-app.use("/barcode", barcodeRouter);
+
 
 app.listen(PORT, () => {
   console.log(`\n[TrackPack] Server avviato su http://localhost:${PORT}\n`);
@@ -258,10 +271,12 @@ class LabelGenerator {
     }
 
     generate({
+        type,
         barcode,
         date,
         quantity,
-        lot
+        lot,
+        image
     }) {
 
         if (!barcode.human) {
@@ -272,23 +287,40 @@ class LabelGenerator {
         }
 
         return {
+            type,
             company: this.company,
-
             barcodeValue: barcode.value,
-
             barcodeText: barcode.human,
-
             lot,
-
             quantity,
-
-            date: BarcodeCodec.formatDate(date)
+            date: BarcodeCodec.formatDate(date),
+            image:image
         };
     }
 
 }
 
 module.exports = LabelGenerator;
+
+# barcode\LabelRenderer.js
+const ejs = require("ejs");
+const path = require("path");
+
+class LabelRenderer {
+
+    async render(type, data) {
+
+        const template = path.join(
+            __dirname,
+            "../../views/barcodes",
+            `${type}.ejs`
+        );
+
+        return ejs.renderFile(template, data);
+    }
+}
+
+module.exports = LabelRenderer;
 
 # middleware\auth.js
 // Richiede utente autenticato
@@ -832,17 +864,19 @@ const router = express.Router();
 const BarcodeCodec = require("../barcode/BarcodeCodec");
 const BarcodeImage = require("../barcode/BarcodeImage");
 const LabelGenerator = require("../barcode/LabelGenerator");
-
+const LabelRenderer = require("../barcode/LabelRenderer");
+const { LABEL_TYPES } = require("../costants");
 
 router.get("/",(req,res) =>{
     return res.json({
     success: true
     });
 })
-router.get("/generate", (req, res) => {
+router.get("/generate", async (req, res) => {
     try {
         const {
-            date,
+            type = LABEL_TYPES.MP,
+            date = new Date(),
             quantity,
             lot
         } = req.query;
@@ -870,17 +904,24 @@ router.get("/generate", (req, res) => {
 
         // Generate label data
         const label = new LabelGenerator().generate({
+            type,
             barcode,
             date,
             quantity: Number(quantity),
-            lot
+            lot,
+            image
         });
+
+        const data = await new LabelRenderer().render(
+            label.type,
+            label
+        );
 
 
         return res.json({
             success: true,
-            label,
-            image
+            data,
+            label
         });
 
 
