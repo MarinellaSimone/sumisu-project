@@ -6,6 +6,7 @@ require('dotenv').config();
 const { requireAuth, requireAdmin, injectUser } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
+const barcodeRouter = require("./routes/barcode");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -58,12 +59,19 @@ app.get('/app', requireAuth, (req, res) => {
 app.use('/', authRoutes);
 app.use('/api', requireAuth, apiRoutes);
 
+// ---- Route barcode ----
+app.use("/barcode", barcodeRouter);
+
 // ---- 404 ----
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Endpoint non trovato' });
   res.status(404).send('Pagina non trovata');
 });
 
+
+
 app.listen(PORT, () => {
   console.log(`\n[TrackPack] Server avviato su http://localhost:${PORT}\n`);
 });
+
+

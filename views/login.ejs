@@ -68,6 +68,7 @@ async function doLogin() {
       err.style.display = 'flex';
       return;
     }
+
     window.location.href = '/app';
   } catch (e) {
     document.getElementById('login-err-msg').textContent = 'Errore di connessione';

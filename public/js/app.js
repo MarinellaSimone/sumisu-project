@@ -117,6 +117,7 @@ async function loadMP() {
 }
 
 async function salvaMP(btn) {
+
   const materiale_id = val('mp-materiale');
   const ddt = val('mp-ddt'), qty = val('mp-qty');
   if (!materiale_id) return showToast('Seleziona il materiale', 'err');
@@ -130,6 +131,14 @@ async function salvaMP(btn) {
     }});
     showToast(`Ricevimento registrato! Lotto ${r.codice_lotto}`);
     ['mp-ddt', 'mp-qty', 'mp-note'].forEach((id) => (document.getElementById(id).value = ''));
+    fetch(`/barcode/generate?date=${r.ddt_data}&quantity=${r.quantita}&lot=${r.codice_lotto}`)
+    .then(res => res.json())
+    .then(data => {
+
+        document.querySelector("#label-mp").innerHTML = data.data;
+        console.log(data);
+        console.log(data.label);
+    });
     loadMP();
   } catch (e) { showToast(e.message, 'err'); }
   finally { loading(false); }
