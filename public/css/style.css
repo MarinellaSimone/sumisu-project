@@ -69,6 +69,63 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
    BARCODE
 ══════════════════════════════════════ */
 
+#label-mp {
+    display: none; /* nascosto di default */
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+#label-mp.show {
+    display: flex;
+}
+
+#label-mp .barcode-mp {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    width: fit-content;      /* size to content, not a fixed max-width */
+    max-width: 90vw;         /* safety net on small screens */
+    position: relative;
+}
+
+#label-mp .barcode-mp img#barcode {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+#label-mp .close-label,
+#label-mp .save-label {
+    position: absolute;
+    top: 8px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #f1f1f1;
+    color: #555;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, color 0.15s;
+}
+#label-mp .close-label { right: 8px; }
+#label-mp .save-label   { right: 44px; }
+
+#label-mp .close-label:hover,
+#label-mp .save-label:hover {
+    background: #e0e0e0;
+    color: #000;
+}
+
 /* MP barcode */
 .barcode-mp {
     display: flex;

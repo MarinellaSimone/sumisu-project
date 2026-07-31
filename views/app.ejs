@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TrackPack</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -98,7 +98,9 @@
               </div>
               <div class="fr"><label class="fl">N° pedane</label><input class="fi" type="number" id="mp-ped" value="1"></div>
               <div class="fr"><label class="fl">Note</label><textarea class="fi" id="mp-note" placeholder="es. 2 pedane danneggiate…"></textarea></div>
-              <div class="btn-row"><button class="btn btn-primary" onclick="salvaMP(this)"><i class="ti ti-check"></i>Conferma</button></div>
+              <div class="btn-row">
+                <button class="btn btn-primary" onclick="salvaMP(this)"><i class="ti ti-check"></i>Conferma</button>
+              </div>
             </div>
             <div class="card">
               <div class="card-title"><i class="ti ti-history"></i>Storico ricevimenti</div>

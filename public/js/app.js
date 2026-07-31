@@ -116,6 +116,24 @@ async function loadMP() {
   } catch (e) { showToast(e.message, 'err'); }
 }
 
+function chiudiLabelMP() {
+    document.querySelector("#label-mp").classList.remove("show");
+}
+
+function salvaLabelMP() {
+    const target = document.querySelector("#barcode-mp-content");
+    html2canvas(target, {
+        backgroundColor: "#ffffff",
+        scale: 3, // buona risoluzione per etichette/barcode
+        ignoreElements: (el) => el.classList.contains("close-label") || el.classList.contains("save-label")
+    }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `lotto-${document.querySelector('.footer-mp span')?.textContent?.replace(/\D/g,'') || 'label'}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+    });
+}
+
 async function salvaMP(btn) {
 
   const materiale_id = val('mp-materiale');
@@ -132,13 +150,20 @@ async function salvaMP(btn) {
     showToast(`Ricevimento registrato! Lotto ${r.codice_lotto}`);
     ['mp-ddt', 'mp-qty', 'mp-note'].forEach((id) => (document.getElementById(id).value = ''));
     fetch(`/barcode/generate?date=${r.ddt_data}&quantity=${r.quantita}&lot=${r.codice_lotto}`)
-    .then(res => res.json())
-    .then(data => {
-
-        document.querySelector("#label-mp").innerHTML = data.data;
-        console.log(data);
-        console.log(data.label);
-    });
+        .then(res => res.json())
+        .then(data => {
+            const labelEl = document.querySelector("#label-mp");
+            labelEl.innerHTML = `
+                <div class="barcode-mp" id="barcode-mp-content">
+                    ${data.data}
+                    <button class="save-label" onclick="salvaLabelMP()" aria-label="Salva immagine"><i class="ti ti-download"></i></button>
+                    <button class="close-label" onclick="chiudiLabelMP()" aria-label="Chiudi">&times;</button>
+                </div>
+            `;
+            labelEl.classList.add("show");
+            console.log(data);
+            console.log(data.label);
+        });
     loadMP();
   } catch (e) { showToast(e.message, 'err'); }
   finally { loading(false); }
