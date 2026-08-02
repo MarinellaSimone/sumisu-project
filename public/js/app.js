@@ -183,14 +183,15 @@ function setSMTipo(t) {
 
 async function loadSM() {
   try {
-    const [forn, mpLotti, lotti] = await Promise.all([api('/fornitori'), api('/lotti-mp'), api('/lotti-sm')]);
+    const [forn, smMat, mpLotti, lotti] = await Promise.all([api('/fornitori'), api('/materiali?tipo=SM'), api('/lotti-mp'), api('/lotti-sm')]);
     fillSelect('sm-fornitore', forn.map((f) => ({ v: f.id, t: f.ragione_sociale })), true, '— nessuno —');
+    fillSelect('sm-tipo', smMat.map((m) => ({ v: m.id, t: `${m.codice} · ${m.descrizione}` })));
     window.__mpLotti = mpLotti;
     fillSelect('sm-mp-sel', mpLotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto MP…');
     if (!document.getElementById('sm-data').value) document.getElementById('sm-data').value = today();
     smConsumi = []; renderSMConsumi();
     document.getElementById('sm-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.tipo_semilavorato || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td></tr>`
     ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessuna lavorazione</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -210,7 +211,7 @@ function renderSMConsumi() {
 
 async function salvaSM(btn) {
   const tipo = val('sm-tipo'), qty = val('sm-qty');
-  if (!tipo) return showToast('Inserisci il tipo di semilavorato', 'err');
+  if (!tipo) return showToast('Seleziona il tipo di semilavorato', 'err');
   loading(true, 'Registrazione SM…');
   try {
     const r = await api('/lotti-sm', { method: 'POST', body: {
@@ -221,8 +222,9 @@ async function salvaSM(btn) {
       consumi: smConsumi.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
     }});
     showToast(`Lavorazione SM registrata! Lotto ${r.codice_lotto}`);
-    ['sm-tipo', 'sm-note'].forEach((id) => (document.getElementById(id).value = ''));
+    ['sm-note'].forEach((id) => (document.getElementById(id).value = ''));
     document.getElementById('sm-qty').value = 0;
+    document.getElementById('sm-tipo').value = '';
     loadSM();
   } catch (e) { showToast(e.message, 'err'); }
   finally { loading(false); }
@@ -238,7 +240,7 @@ async function loadPF() {
     fillSelect('pf-art', art.map((a) => ({ v: a.id, t: `${a.codice} · ${a.descrizione}` })));
     window.__mpLotti = mpLotti; window.__smLotti = smLotti;
     fillSelect('pf-mp-sel', mpLotti.map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto MP…');
-    fillSelect('pf-sm-sel', smLotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.tipo_semilavorato || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto SM…');
+    fillSelect('pf-sm-sel', smLotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto SM…');
     pfConsumiMP = []; pfConsumiSM = []; renderPFConsumi();
     document.getElementById('pf-storico').innerHTML = lotti.map((l) =>
       `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td></tr>`
@@ -256,7 +258,7 @@ function addPFConsumoSM() {
   const id = val('pf-sm-sel'); if (!id) return;
   if (pfConsumiSM.find((c) => c.lotto_sm_id === id)) return showToast('Lotto già aggiunto', 'err');
   const l = (window.__smLotti || []).find((x) => x.id === id);
-  pfConsumiSM.push({ lotto_sm_id: id, codice: l.codice_lotto, desc: l.tipo_semilavorato, disp: l.giacenza, um: l.unita_misura, quantita: 0 });
+  pfConsumiSM.push({ lotto_sm_id: id, codice: l.codice_lotto, desc: l.materiali?.descrizione || '', disp: l.giacenza, um: l.unita_misura, quantita: 0 });
   renderPFConsumi();
 }
 function renderPFConsumi() {

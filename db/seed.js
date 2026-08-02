@@ -87,8 +87,8 @@ async function seedLotti() {
   }
 
   const smRows = [
-    { codice_lotto: 'SM-20260707-SCT-001', tipo_semilavorato: 'Fustellato grezzo', lavorazione: 'interna', quantita: 3000, giacenza: 3000, unita_misura: 'pz', data_lavorazione: '2026-07-07', stato: 'Disponibile' },
-    { codice_lotto: 'SM-20260706-BOB-002', tipo_semilavorato: 'Bobina stampata', lavorazione: 'esterna', fornitore_sm_id: fById('ColorPrint'), quantita: 800, giacenza: 800, unita_misura: 'mt', data_lavorazione: '2026-07-06', stato: 'In uso' },
+    { codice_lotto: 'SM-20260707-SCT-001', tipo_semilavorato: mById('SCT'), lavorazione: 'interna', quantita: 3000, giacenza: 3000, unita_misura: 'pz', data_lavorazione: '2026-07-07', stato: 'Disponibile' },
+    { codice_lotto: 'SM-20260706-BOB-002', tipo_semilavorato: mById('BOB'), lavorazione: 'esterna', fornitore_sm_id: fById('ColorPrint'), quantita: 800, giacenza: 800, unita_misura: 'mt', data_lavorazione: '2026-07-06', stato: 'In uso' },
   ];
   for (const r of smRows) {
     const { error } = await supabase.from('lotti_sm').upsert(r, { onConflict: 'codice_lotto' });
