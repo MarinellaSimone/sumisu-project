@@ -11,6 +11,7 @@ class LabelGenerator {
         barcode,
         date,
         quantity,
+        unit,
         lot,
         image
     }) {
@@ -30,6 +31,7 @@ class LabelGenerator {
             lot,
             quantity,
             date: BarcodeCodec.formatDate(date),
+            unit,
             image:image
         };
     }

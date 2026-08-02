@@ -18,6 +18,7 @@ router.get("/generate", async (req, res) => {
             type = LABEL_TYPES.MP,
             date = new Date(),
             quantity,
+            unit,
             lot
         } = req.query;
 
@@ -48,6 +49,7 @@ router.get("/generate", async (req, res) => {
             barcode,
             date,
             quantity: Number(quantity),
+            unit,
             lot,
             image
         });

@@ -149,7 +149,7 @@ async function salvaMP(btn) {
     }});
     showToast(`Ricevimento registrato! Lotto ${r.codice_lotto}`);
     ['mp-ddt', 'mp-qty', 'mp-note'].forEach((id) => (document.getElementById(id).value = ''));
-    fetch(`/barcode/generate?date=${r.ddt_data}&quantity=${r.quantita}&lot=${r.codice_lotto}`)
+    fetch(`/barcode/generate?date=${r.ddt_data}&quantity=${r.quantita}&unit=${r.unita_misura }&lot=${r.codice_lotto}`)
         .then(res => res.json())
         .then(data => {
             const labelEl = document.querySelector("#label-mp");
