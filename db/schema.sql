@@ -72,7 +72,7 @@ create table if not exists lotti_mp (
 create table if not exists lotti_sm (
   id            uuid primary key default gen_random_uuid(),
   codice_lotto  text unique not null,        -- SM-AAAAMMGG-TIPO-NNN
-  tipo_semilavorato text,                     -- Fustellato grezzo, Bobina stampata...
+  tipo_semilavorato uuid references materiali(id),
   lavorazione   text not null default 'interna' check (lavorazione in ('interna','esterna')),
   fornitore_sm_id uuid references fornitori(id),
   ddt_numero    text,

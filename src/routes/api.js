@@ -38,12 +38,12 @@ router.get('/dashboard', wrap(async (req, res) => {
 
   // Ultimi movimenti (unione semplice)
   const { data: ultMp } = await supabase.from('lotti_mp').select('codice_lotto,creato_il,materiali(descrizione)').order('creato_il', { ascending: false }).limit(3);
-  const { data: ultSm } = await supabase.from('lotti_sm').select('codice_lotto,creato_il,tipo_semilavorato').order('creato_il', { ascending: false }).limit(3);
+  const { data: ultSm } = await supabase.from('lotti_sm').select('codice_lotto,creato_il,materiali(descrizione)').order('creato_il', { ascending: false }).limit(3);
   const { data: ultPf } = await supabase.from('lotti_pf').select('codice_lotto,creato_il,articoli_pf(descrizione)').order('creato_il', { ascending: false }).limit(3);
 
   const movimenti = [
     ...(ultMp || []).map((r) => ({ tipo: 'MP', codice: r.codice_lotto, desc: r.materiali?.descrizione || '', ts: r.creato_il })),
-    ...(ultSm || []).map((r) => ({ tipo: 'SM', codice: r.codice_lotto, desc: r.tipo_semilavorato || '', ts: r.creato_il })),
+    ...(ultSm || []).map((r) => ({ tipo: 'SM', codice: r.codice_lotto, desc: r.materiali?.descrizione || '', ts: r.creato_il })),
     ...(ultPf || []).map((r) => ({ tipo: 'PF', codice: r.codice_lotto, desc: r.articoli_pf?.descrizione || '', ts: r.creato_il })),
   ].sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 6);
 
@@ -162,7 +162,7 @@ router.post('/lotti-mp', wrap(async (req, res) => {
 router.get('/lotti-sm', wrap(async (req, res) => {
   const { data, error } = await supabase
     .from('lotti_sm')
-    .select('*,fornitori(ragione_sociale)')
+    .select('*,fornitori(ragione_sociale),materiali(codice,descrizione)')
     .order('creato_il', { ascending: false });
   if (error) throw error;
   res.json(data);
@@ -172,12 +172,13 @@ router.post('/lotti-sm', wrap(async (req, res) => {
   const { tipo_semilavorato, lavorazione, fornitore_sm_id, ddt_numero, ddt_data,
           quantita, unita_misura, data_lavorazione, note, consumi } = req.body;
 
-  const sigla = (tipo_semilavorato || 'SM').replace(/[^A-Za-z]/g, '').slice(0, 3);
+  const { data: materiale } = await supabase.from('materiali').select('codice').eq('id', tipo_semilavorato).maybeSingle();
+  const sigla = (materiale?.codice || 'SM').replace(/[^A-Za-z]/g, '').slice(0, 3);
   const codice_lotto = await generaLottoSM(sigla, data_lavorazione);
 
   const { data: lotto, error } = await supabase.from('lotti_sm').insert({
     codice_lotto,
-    tipo_semilavorato,
+    tipo_semilavorato: tipo_semilavorato || null,
     lavorazione: lavorazione === 'esterna' ? 'esterna' : 'interna',
     fornitore_sm_id: fornitore_sm_id || null,
     ddt_numero, ddt_data: ddt_data || null,
@@ -273,8 +274,8 @@ router.get('/magazzino/:tipo', wrap(async (req, res) => {
   }
   if (tipo === 'sm') {
     const { data } = await supabase.from('lotti_sm')
-      .select('codice_lotto,giacenza,unita_misura,stato,tipo_semilavorato').order('creato_il', { ascending: false });
-    return res.json((data || []).map((r) => ({ codice: r.codice_lotto, desc: r.tipo_semilavorato, giacenza: r.giacenza, um: r.unita_misura, stato: r.stato })));
+      .select('codice_lotto,giacenza,unita_misura,stato,materiali(descrizione)').order('creato_il', { ascending: false });
+    return res.json((data || []).map((r) => ({ codice: r.codice_lotto, desc: r.materiali?.descrizione, giacenza: r.giacenza, um: r.unita_misura, stato: r.stato })));
   }
   if (tipo === 'pf') {
     const { data } = await supabase.from('lotti_pf')
@@ -327,7 +328,7 @@ router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
 
   // Individua il tipo dal prefisso
   const findMP = async (id) => (await supabase.from('lotti_mp').select('*,fornitori(ragione_sociale),materiali(descrizione)').eq('id', id).maybeSingle()).data;
-  const findSM = async (id) => (await supabase.from('lotti_sm').select('*').eq('id', id).maybeSingle()).data;
+  const findSM = async (id) => (await supabase.from('lotti_sm').select('*,materiali(codice,descrizione)').eq('id', id).maybeSingle()).data;
   const findPF = async (id) => (await supabase.from('lotti_pf').select('*,articoli_pf(descrizione)').eq('id', id).maybeSingle()).data;
 
   async function espandiPF(pf) {
@@ -347,7 +348,7 @@ router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
     }
   }
   async function espandiSM(sm) {
-    catena.sm.push({ codice: sm.codice_lotto, tipo: sm.tipo_semilavorato, lav: sm.lavorazione, data: sm.creato_il });
+    catena.sm.push({ codice: sm.codice_lotto, tipo: sm.materiali?.descrizione || '', lav: sm.lavorazione, data: sm.creato_il });
     const { data: cmp } = await supabase.from('sm_consumi_mp').select('lotto_mp_id').eq('lotto_sm_id', sm.id);
     for (const c of (cmp || [])) { const mp = await findMP(c.lotto_mp_id); if (mp) catena.mp.push(mpRow(mp)); }
   }
@@ -357,7 +358,7 @@ router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
     const { data } = await supabase.from('lotti_pf').select('*,articoli_pf(descrizione)').eq('codice_lotto', codice).maybeSingle();
     await espandiPF(data);
   } else if (codice.startsWith('SM-')) {
-    const { data } = await supabase.from('lotti_sm').select('*').eq('codice_lotto', codice).maybeSingle();
+    const { data } = await supabase.from('lotti_sm').select('*,materiali(codice,descrizione)').eq('codice_lotto', codice).maybeSingle();
     if (data) await espandiSM(data);
   } else {
     // MP: trova a valle SM e PF che lo usano
@@ -365,7 +366,7 @@ router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
     if (mp) {
       catena.mp.push(mpRow(mp));
       const { data: usedSm } = await supabase.from('sm_consumi_mp').select('lotto_sm_id').eq('lotto_mp_id', mp.id);
-      for (const u of (usedSm || [])) { const sm = await findSM(u.lotto_sm_id); if (sm) catena.sm.push({ codice: sm.codice_lotto, tipo: sm.tipo_semilavorato, lav: sm.lavorazione, data: sm.creato_il }); }
+      for (const u of (usedSm || [])) { const sm = await findSM(u.lotto_sm_id); if (sm) catena.sm.push({ codice: sm.codice_lotto, tipo: sm.materiali?.descrizione || '', lav: sm.lavorazione, data: sm.creato_il }); }
       const { data: usedPf } = await supabase.from('pf_consumi_mp').select('lotto_pf_id').eq('lotto_mp_id', mp.id);
       for (const u of (usedPf || [])) { const pf = await findPF(u.lotto_pf_id); if (pf) catena.pf.push({ codice: pf.codice_lotto, articolo: pf.articoli_pf?.descrizione, data: pf.creato_il }); }
     }
