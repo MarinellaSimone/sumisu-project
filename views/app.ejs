@@ -106,7 +106,7 @@
               <div class="card-title"><i class="ti ti-history"></i>Storico ricevimenti</div>
               <div class="tw"><table><thead><tr><th>Lotto MP</th><th>Materiale</th><th>Data</th><th>Giacenza</th><th>Stato</th></tr></thead><tbody id="mp-storico"></tbody></table></div>
             </div>
-            <div id="label-mp"></div>
+            <div id="label-mp" class="label-modal"></div>
           </div>
         </div>
 
@@ -146,6 +146,7 @@
               <div class="card-title"><i class="ti ti-history"></i>Storico lavorazioni</div>
               <div class="tw"><table><thead><tr><th>Lotto SM</th><th>Tipo</th><th>Lav.</th><th>Giacenza</th><th>Stato</th></tr></thead><tbody id="sm-storico"></tbody></table></div>
             </div>
+            <div id="label-sm" class="label-modal"></div>
           </div>
         </div>
 
@@ -312,6 +313,7 @@
 <script>
   window.__USER__ = <%- JSON.stringify(user) %>;
 </script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="/js/app.js"></script>
 </body>
 </html>

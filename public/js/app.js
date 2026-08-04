@@ -116,11 +116,11 @@ async function loadMP() {
   } catch (e) { showToast(e.message, 'err'); }
 }
 
-function chiudiLabelMP() {
-    document.querySelector("#label-mp").classList.remove("show");
+function chiudiLabel(selector) {
+    document.querySelector(selector).classList.remove("show");
 }
 
-function salvaLabelMP() {
+function salvaLabel() {
     const target = document.querySelector("#barcode-mp-content");
     html2canvas(target, {
         backgroundColor: "#ffffff",
@@ -132,6 +132,24 @@ function salvaLabelMP() {
         link.href = canvas.toDataURL("image/png");
         link.click();
     });
+}
+
+function generateEtichetta(r,date,selector = "#label-mp",type = "MP") {
+    fetch(`/barcode/generate?date=${date}&quantity=${r.quantita}&unit=${r.unita_misura }&lot=${r.codice_lotto}&type=${type}`)
+        .then(res => res.json())
+        .then(data => {
+            const labelEl = document.querySelector(selector);
+            labelEl.innerHTML = `
+                <div class="barcode-mp" id="barcode-mp-content">
+                    ${data.data}
+                    <button class="save-label" onclick="salvaLabel()" aria-label="Salva immagine"><i class="ti ti-download"></i></button>
+                    <button class="close-label" onclick="chiudiLabel('${selector}')" aria-label="Chiudi">&times;</button>
+                </div>
+            `;
+            labelEl.classList.add("show");
+            console.log(data);
+            console.log(data.label);
+        });
 }
 
 async function salvaMP(btn) {
@@ -148,23 +166,9 @@ async function salvaMP(btn) {
       quantita: qty, unita_misura: val('mp-um'), n_pedane: val('mp-ped'), note: val('mp-note'),
     }});
     showToast(`Ricevimento registrato! Lotto ${r.codice_lotto}`);
-    ['mp-ddt', 'mp-qty', 'mp-note'].forEach((id) => (document.getElementById(id).value = ''));
-    fetch(`/barcode/generate?date=${r.ddt_data}&quantity=${r.quantita}&unit=${r.unita_misura }&lot=${r.codice_lotto}`)
-        .then(res => res.json())
-        .then(data => {
-            const labelEl = document.querySelector("#label-mp");
-            labelEl.innerHTML = `
-                <div class="barcode-mp" id="barcode-mp-content">
-                    ${data.data}
-                    <button class="save-label" onclick="salvaLabelMP()" aria-label="Salva immagine"><i class="ti ti-download"></i></button>
-                    <button class="close-label" onclick="chiudiLabelMP()" aria-label="Chiudi">&times;</button>
-                </div>
-            `;
-            labelEl.classList.add("show");
-            console.log(data);
-            console.log(data.label);
-        });
+    ['mp-ddt', 'mp-qty', 'mp-note'].forEach((id) => (document.getElementById(id).value = ''));      
     loadMP();
+    generateEtichetta(r,r.ddt_data,"#label-mp","MP");
   } catch (e) { showToast(e.message, 'err'); }
   finally { loading(false); }
 }
@@ -221,6 +225,7 @@ async function salvaSM(btn) {
       quantita: qty, unita_misura: val('sm-um'), data_lavorazione: val('sm-data'), note: val('sm-note'),
       consumi: smConsumi.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
     }});
+    generateEtichetta(r,r.data_lavorazione,"#label-sm","SM");
     showToast(`Lavorazione SM registrata! Lotto ${r.codice_lotto}`);
     ['sm-note'].forEach((id) => (document.getElementById(id).value = ''));
     document.getElementById('sm-qty').value = 0;
