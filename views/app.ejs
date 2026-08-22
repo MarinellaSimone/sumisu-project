@@ -134,10 +134,25 @@
                 <div class="fr"><label class="fl">Data lavorazione</label><input class="fi" type="date" id="sm-data"></div>
               </div>
               <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Lotti MP utilizzati</div>
+              <div id="sm-lot-add-tabs" class="tabs" style="margin-bottom:10px;">
+                <button class="tab-btn on" onclick="smLotAddTab('manual',this)">Manuale</button>
+                <button class="tab-btn" onclick="smLotAddTab('scanner',this)">Scannerizza</button>
+              </div>
               <div id="sm-mp-rows"></div>
-              <div style="display:flex;gap:8px;margin-bottom:14px;">
-                <select class="fi" id="sm-mp-sel" style="flex:1;font-size:13px;"><option value="">Aggiungi lotto MP…</option></select>
-                <button class="btn btn-verde" onclick="addSMConsumo()"><i class="ti ti-plus"></i></button>
+              <div id="sm-mp-manual" style="display:block;">
+                <div style="display:flex;gap:8px;margin-bottom:14px;">
+                  <select class="fi" id="sm-mp-sel" style="flex:1;font-size:13px;"><option value="">Aggiungi lotto MP…</option></select>
+                  <button class="btn btn-verde" onclick="addSMConsumo()"><i class="ti ti-plus"></i></button>
+                </div>
+              </div>
+              <div id="sm-mp-scanner" style="display:none;">
+                <div class="fr" style="margin-bottom:0;">
+                  <label class="fl">Barcode scannerizzato</label>
+                  <input class="fi" id="sm-mp-scan" placeholder="Incolla / scannerizza il valore barcode" onkeydown="if(event.key==='Enter') addSMConsumoByScan()">
+                </div>
+                <div style="display:flex;justify-content:flex-start;gap:8px;margin-top:8px;">
+                  <button class="btn btn-verde" onclick="addSMConsumoByScan()"><i class="ti ti-scan"></i>Recupera lotto</button>
+                </div>
               </div>
               <div class="fr"><label class="fl">Note</label><textarea class="fi" id="sm-note"></textarea></div>
               <div class="btn-row"><button class="btn btn-primary" onclick="salvaSM(this)"><i class="ti ti-check"></i>Conferma SM</button></div>
@@ -156,7 +171,7 @@
             <div class="card">
               <div class="card-title"><i class="ti ti-building-factory-2"></i>Nuovo ordine PF</div>
               <div class="fr"><label class="fl">Articolo da produrre <span class="req">*</span></label><select class="fi" id="pf-art"></select></div>
-              <div class="fr"><label class="fl">Quantità (pz) <span class="req">*</span></label><input class="fi" type="number" id="pf-qty" value="0"></div>
+              <div class="fr"><label class="fl">Quantità <span class="req">*</span></label><div style="display:flex;gap:6px;"><input class="fi" type="number" id="pf-qty" value="0" style="flex:1;"><select class="fi" id="pf-um" style="width:70px;padding:11px 6px;"><option>kg</option><option>mq</option><option>pz</option><option>mt</option></select></div></div>
               <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Lotti MP collegati</div>
               <div class="info-box info-verde"><i class="ti ti-info-circle"></i>La quantità può essere 0 se il lotto è tracciato ma non consumato.</div>
               <div id="pf-mp-rows"></div>
