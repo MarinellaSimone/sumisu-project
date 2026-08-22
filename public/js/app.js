@@ -420,6 +420,14 @@ async function loadMag(tipo) {
 // SPEDIZIONI
 // ============================================================
 let spedRighe = [];
+let spedLotAddMode = 'manual';
+function spedLotAddTab(mode, btn) {
+  spedLotAddMode = mode;
+  document.querySelectorAll('#sped-pf-add-tabs .tab-btn').forEach((b) => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  document.getElementById('sped-pf-manual').style.display = mode === 'manual' ? 'block' : 'none';
+  document.getElementById('sped-pf-scanner').style.display = mode === 'scanner' ? 'block' : 'none';
+}
 async function loadSped() {
   try {
     const [pfLotti, clienti, storico] = await Promise.all([api('/lotti-pf'), api('/clienti'), api('/spedizioni')]);
@@ -434,12 +442,25 @@ async function loadSped() {
     ).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessuna spedizione</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
-function addSpedRiga() {
-  const id = val('sped-pf-sel'); if (!id) return;
+function addSpedRigaById(id) {
+  if (!id) return;
   if (spedRighe.find((r) => r.lotto_pf_id === id)) return showToast('Lotto già aggiunto', 'err');
   const l = (window.__pfLotti || []).find((x) => x.id === id);
+  if (!l) return showToast('Lotto PF non trovato', 'err');
   spedRighe.push({ lotto_pf_id: id, codice: l.codice_lotto, desc: l.articoli_pf?.descrizione, disp: l.giacenza, um: l.unita_misura, quantita: l.giacenza });
   renderSpedRighe();
+}
+function addSpedRiga() {
+  const id = val('sped-pf-sel'); if (!id) return showToast('Seleziona un lotto PF', 'err');
+  addSpedRigaById(id);
+}
+function addSpedRigaByScan() {
+  const scan = val('sped-pf-scan');
+  if (!scan) return showToast('Scannerizza o incolla un codice barcode', 'err');
+  const lotto = findLotByBarcode(window.__pfLotti, scan);
+  if (!lotto) return showToast('Nessun lotto PF trovato per il codice scannerizzato', 'err');
+  addSpedRigaById(lotto.id);
+  document.getElementById('sped-pf-scan').value = '';
 }
 function renderSpedRighe() {
   document.getElementById('sped-pf-rows').innerHTML = spedRighe.map((r, i) =>

@@ -248,10 +248,25 @@
                 <div class="fr"><label class="fl">Vettore</label><input class="fi" type="text" id="sped-vettore" placeholder="es. BRT"></div>
               </div>
               <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Lotti PF da spedire</div>
+              <div id="sped-pf-add-tabs" class="tabs" style="margin-bottom:10px;">
+                <button class="tab-btn on" onclick="spedLotAddTab('manual',this)">Manuale</button>
+                <button class="tab-btn" onclick="spedLotAddTab('scanner',this)">Scannerizza</button>
+              </div>
               <div id="sped-pf-rows"></div>
-              <div style="display:flex;gap:8px;margin-bottom:14px;">
-                <select class="fi" id="sped-pf-sel" style="flex:1;font-size:13px;"><option value="">Aggiungi lotto PF…</option></select>
-                <button class="btn btn-verde" onclick="addSpedRiga()"><i class="ti ti-plus"></i></button>
+              <div id="sped-pf-manual" style="display:block;">
+                <div style="display:flex;gap:8px;margin-bottom:14px;">
+                  <select class="fi" id="sped-pf-sel" style="flex:1;font-size:13px;"><option value="">Aggiungi lotto PF…</option></select>
+                  <button class="btn btn-verde" onclick="addSpedRiga()"><i class="ti ti-plus"></i></button>
+                </div>
+              </div>
+              <div id="sped-pf-scanner" style="display:none;">
+                <div class="fr" style="margin-bottom:0;">
+                  <label class="fl">Barcode scannerizzato</label>
+                  <input class="fi" id="sped-pf-scan" placeholder="Incolla / scannerizza il valore barcode" onkeydown="if(event.key==='Enter') addSpedRigaByScan()">
+                </div>
+                <div style="display:flex;justify-content:flex-start;gap:8px;margin-top:8px;">
+                  <button class="btn btn-verde" onclick="addSpedRigaByScan()"><i class="ti ti-scan"></i>Recupera lotto</button>
+                </div>
               </div>
               <div class="fr"><label class="fl">Note</label><textarea class="fi" id="sped-note"></textarea></div>
               <div class="btn-row"><button class="btn btn-primary" onclick="salvaSped(this)"><i class="ti ti-check"></i>Conferma spedizione</button></div>
