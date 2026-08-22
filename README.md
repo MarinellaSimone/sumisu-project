@@ -87,7 +87,7 @@ I permessi sono applicati sia lato UI (voci di menu nascoste) sia lato server
 3. **Lavorazione SM** — interna/esterna, consuma lotti MP, genera `SM-AAAAMMGG-TIPO-NNN`
 4. **Produzione PF** — collega lotti MP e SM, genera `PF-AAAAMMGG-ART-NNN`
 5. **Magazzino** — giacenze correnti MP / SM / PF
-6. **Spedizioni / DDT** — genera `DDT-AAAA-NNNN`, scarica le giacenze PF
+6. **SPEDIZIONI PF** — genera `DDT-AAAA-NNNN`, scarica le giacenze PF
 7. **Anagrafiche** — fornitori, materiali MP/SM, articoli PF (GTIN-14)
 8. **Rintracciabilità** — ricostruisce la catena a monte/valle da qualsiasi codice lotto
 9. **Gestione utenti** — crea/disabilita/elimina utenti, reset password

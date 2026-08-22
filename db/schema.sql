@@ -139,7 +139,7 @@ create table if not exists pf_consumi_sm (
   unita_misura text
 );
 
--- ---------- SPEDIZIONI / DDT ----------
+-- ---------- SPEDIZIONI PF ----------
 create table if not exists spedizioni (
   id            uuid primary key default gen_random_uuid(),
   ddt_numero    text unique not null,        -- DDT-AAAA-NNNN

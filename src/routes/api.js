@@ -301,7 +301,7 @@ router.get('/magazzino/:tipo', wrap(async (req, res) => {
 }));
 
 // ============================================================
-// SPEDIZIONI / DDT  (solo admin)
+// SPEDIZIONI PF  (solo admin)
 // ============================================================
 router.get('/spedizioni', requireAdmin, wrap(async (req, res) => {
   const { data, error } = await supabase.from('spedizioni').select('*').order('creato_il', { ascending: false });
