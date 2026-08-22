@@ -29,6 +29,17 @@ create table if not exists fornitori (
   creato_il    timestamptz not null default now()
 );
 
+-- ---------- CLIENTI ----------
+create table if not exists clienti (
+  id               uuid primary key default gen_random_uuid(),
+  ragione_sociale  text not null,
+  partita_iva      text,
+  email            text,
+  telefono         text,
+  stato            text not null default 'Attivo' check (stato in ('Attivo','Sospeso')),
+  creato_il        timestamptz not null default now()
+);
+
 -- ---------- MATERIALI (MP / SM) ----------
 create table if not exists materiali (
   id          uuid primary key default gen_random_uuid(),

@@ -422,8 +422,9 @@ async function loadMag(tipo) {
 let spedRighe = [];
 async function loadSped() {
   try {
-    const [pfLotti, storico] = await Promise.all([api('/lotti-pf'), api('/spedizioni')]);
+    const [pfLotti, clienti, storico] = await Promise.all([api('/lotti-pf'), api('/clienti'), api('/spedizioni')]);
     window.__pfLotti = pfLotti;
+    fillSelect('sped-cliente', clienti.map((c) => ({ v: c.ragione_sociale, t: c.ragione_sociale })), true, '— seleziona cliente —');
     const spedibili = pfLotti.filter((l) => l.giacenza > 0 && l.stato !== 'Spedito');
     fillSelect('sped-pf-sel', spedibili.map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.articoli_pf?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto PF…');
     if (!document.getElementById('sped-data').value) document.getElementById('sped-data').value = today();
@@ -466,15 +467,17 @@ async function salvaSped(btn) {
 // ANAGRAFICHE
 // ============================================================
 function anaTab(t, btn) {
-  ['f', 'm', 'a'].forEach((k) => (document.getElementById('ana-' + k).style.display = k === t ? '' : 'none'));
+  ['f', 'c', 'm', 'a'].forEach((k) => (document.getElementById('ana-' + k).style.display = k === t ? '' : 'none'));
   document.querySelectorAll('#page-ana .tab-btn').forEach((b) => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
 }
 async function loadAna() {
   try {
-    const [forn, mat, art] = await Promise.all([api('/fornitori'), api('/materiali'), api('/articoli')]);
+    const [forn, clienti, mat, art] = await Promise.all([api('/fornitori'), api('/clienti'), api('/materiali'), api('/articoli')]);
     document.getElementById('ana-f-body').innerHTML = forn.map((f) =>
       `<tr><td>${esc(f.ragione_sociale)}</td><td class="mono">${esc(f.piva || '—')}</td><td>${statoPill(f.stato)}</td></tr>`).join('') || '<tr><td colspan="3"><div class="empty"><p>Nessun fornitore</p></div></td></tr>';
+    document.getElementById('ana-c-body').innerHTML = clienti.map((c) =>
+      `<tr><td>${esc(c.ragione_sociale)}</td><td class="mono">${esc(c.partita_iva || '—')}</td><td class="mono">${esc(c.email || '—')}</td><td>${statoPill(c.stato)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessun cliente</p></div></td></tr>';
     document.getElementById('ana-m-body').innerHTML = mat.map((m) =>
       `<tr><td class="mono">${esc(m.codice)}</td><td>${esc(m.descrizione)}</td><td>${pill(m.tipo, m.tipo === 'MP' ? 'pill-verde' : 'pill-viola')}</td><td>${esc(m.unita_misura)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessun materiale</p></div></td></tr>';
     document.getElementById('ana-a-body').innerHTML = art.map((a) =>
@@ -488,6 +491,22 @@ async function addFornitore(btn) {
     await api('/fornitori', { method: 'POST', body: { ragione_sociale, piva: val('af-piva'), stato: val('af-stato') } });
     showToast('Fornitore aggiunto');
     ['af-nome', 'af-piva'].forEach((id) => (document.getElementById(id).value = ''));
+    loadAna();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+async function addCliente(btn) {
+  const ragione_sociale = val('ac-nome');
+  if (!ragione_sociale) return showToast('Ragione sociale obbligatoria', 'err');
+  try {
+    await api('/clienti', { method: 'POST', body: {
+      ragione_sociale,
+      partita_iva: val('ac-piva'),
+      email: val('ac-email'),
+      telefono: val('ac-tel'),
+      stato: val('ac-stato')
+    } });
+    showToast('Cliente aggiunto');
+    ['ac-nome', 'ac-piva', 'ac-email', 'ac-tel'].forEach((id) => (document.getElementById(id).value = ''));
     loadAna();
   } catch (e) { showToast(e.message, 'err'); }
 }
