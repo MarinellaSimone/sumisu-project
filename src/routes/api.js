@@ -186,6 +186,7 @@ router.get('/lotti-sm', wrap(async (req, res) => {
 router.post('/lotti-sm', wrap(async (req, res) => {
   const { tipo_semilavorato, lavorazione, fornitore_sm_id, ddt_numero, ddt_data,
           quantita, unita_misura, data_lavorazione, note, consumi } = req.body;
+  await verificaDisponibilita('lotti_mp', consumi, 'lotto_mp_id');
 
   const { data: materiale } = await supabase.from('materiali').select('codice').eq('id', tipo_semilavorato).maybeSingle();
   const sigla = (materiale?.codice || 'SM').replace(/[^A-Za-z]/g, '').slice(0, 3);
@@ -234,6 +235,8 @@ router.get('/lotti-pf', wrap(async (req, res) => {
 
 router.post('/lotti-pf', wrap(async (req, res) => {
   const { articolo_id, quantita, unita_misura, note, consumi_mp, consumi_sm } = req.body;
+  await verificaDisponibilita('lotti_mp', consumi_mp, 'lotto_mp_id');
+  await verificaDisponibilita('lotti_sm', consumi_sm, 'lotto_sm_id');
 
   let sigla = 'PF';
   if (articolo_id) {
@@ -312,6 +315,7 @@ router.get('/spedizioni', requireAdmin, wrap(async (req, res) => {
 router.post('/spedizioni', requireAdmin, wrap(async (req, res) => {
   const { cliente, data_spedizione, vettore, note, righe } = req.body;
   if (!cliente) return res.status(400).json({ error: 'Cliente obbligatorio' });
+  await verificaDisponibilita('lotti_pf', righe, 'lotto_pf_id');
   const ddt_numero = await generaDDT(data_spedizione);
 
   const { data: sped, error } = await supabase.from('spedizioni').insert({
@@ -452,9 +456,34 @@ router.delete('/utenti/:id', requireAdmin, wrap(async (req, res) => {
 // ============================================================
 // Helper: scala giacenza e aggiorna stato
 // ============================================================
+async function verificaDisponibilita(tabella, righe, idCampo) {
+  if (!Array.isArray(righe)) return;
+  const richieste = new Map();
+  for (const riga of righe) {
+    if (!riga || !riga[idCampo]) continue;
+    const qty = Number(riga.quantita);
+    if (!Number.isFinite(qty) || qty < 0) throw new Error('La quantità deve essere un numero positivo');
+    if (qty > 0) richieste.set(riga[idCampo], (richieste.get(riga[idCampo]) || 0) + qty);
+  }
+  if (!richieste.size) return;
+
+  const { data, error } = await supabase.from(tabella).select('id,giacenza').in('id', [...richieste.keys()]);
+  if (error) throw error;
+  const disponibilita = new Map((data || []).map((riga) => [riga.id, Number(riga.giacenza) || 0]));
+  for (const [id, richiesta] of richieste) {
+    const disponibile = disponibilita.get(id);
+    if (disponibile === undefined || richiesta > disponibile) {
+      throw new Error('La quantità richiesta supera la disponibilità del lotto');
+    }
+  }
+}
+
 async function scalaGiacenza(tabella, id, qty) {
   const { data: r } = await supabase.from(tabella).select('giacenza,quantita').eq('id', id).maybeSingle();
   if (!r) return;
+  if (!Number.isFinite(qty) || qty < 0 || qty > Number(r.giacenza)) {
+    throw new Error('La quantità richiesta supera la disponibilità del lotto');
+  }
   const nuova = Math.max(0, Number(r.giacenza) - qty);
   const update = { giacenza: nuova };
   if (nuova <= 0) update.stato = tabella === 'lotti_mp' ? 'Esaurito' : 'Esaurito';

@@ -265,9 +265,21 @@ function addSMConsumoByScan() {
   addSMConsumoById(lotto.id);
   document.getElementById('sm-mp-scan').value = '';
 }
+function setQuantitaDisponibile(collection, index, value, render) {
+  const riga = collection[index];
+  const quantita = Number(value);
+  if (!riga) return;
+  if (!Number.isFinite(quantita) || quantita < 0 || quantita > Number(riga.disp)) {
+    showToast(`La quantità non può superare la disponibilità (${fmt(riga.disp)} ${riga.um})`, 'err');
+    riga.quantita = Math.min(Math.max(Number.isFinite(quantita) ? quantita : 0, 0), Number(riga.disp));
+  } else {
+    riga.quantita = quantita;
+  }
+  render();
+}
 function renderSMConsumi() {
   document.getElementById('sm-mp-rows').innerHTML = smConsumi.map((c, i) =>
-    `<div class="mp-row">${pill('MP', 'pill-verde')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" value="${c.quantita}" onchange="smConsumi[${i}].quantita=this.value" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="smConsumi.splice(${i},1);renderSMConsumi()">×</button></div>`
+    `<div class="mp-row">${pill('MP', 'pill-verde')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" min="0" max="${c.disp}" value="${c.quantita}" onchange="setQuantitaDisponibile(smConsumi,${i},this.value,renderSMConsumi)" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="smConsumi.splice(${i},1);renderSMConsumi()">×</button></div>`
   ).join('');
 }
 
@@ -374,10 +386,10 @@ function addPFConsumoSMByScan() {
 }
 function renderPFConsumi() {
   document.getElementById('pf-mp-rows').innerHTML = pfConsumiMP.map((c, i) =>
-    `<div class="mp-row">${pill('MP', 'pill-verde')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" value="${c.quantita}" onchange="pfConsumiMP[${i}].quantita=this.value" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="pfConsumiMP.splice(${i},1);renderPFConsumi()">×</button></div>`
+    `<div class="mp-row">${pill('MP', 'pill-verde')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" min="0" max="${c.disp}" value="${c.quantita}" onchange="setQuantitaDisponibile(pfConsumiMP,${i},this.value,renderPFConsumi)" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="pfConsumiMP.splice(${i},1);renderPFConsumi()">×</button></div>`
   ).join('');
   document.getElementById('pf-sm-rows').innerHTML = pfConsumiSM.map((c, i) =>
-    `<div class="mp-row">${pill('SM', 'pill-viola')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" value="${c.quantita}" onchange="pfConsumiSM[${i}].quantita=this.value" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="pfConsumiSM.splice(${i},1);renderPFConsumi()">×</button></div>`
+    `<div class="mp-row">${pill('SM', 'pill-viola')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" min="0" max="${c.disp}" value="${c.quantita}" onchange="setQuantitaDisponibile(pfConsumiSM,${i},this.value,renderPFConsumi)" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="pfConsumiSM.splice(${i},1);renderPFConsumi()">×</button></div>`
   ).join('');
 }
 async function salvaPF(btn) {
@@ -464,7 +476,7 @@ function addSpedRigaByScan() {
 }
 function renderSpedRighe() {
   document.getElementById('sped-pf-rows').innerHTML = spedRighe.map((r, i) =>
-    `<div class="mp-row">${pill('PF', 'pill-amber')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(r.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(r.desc || '')} · ${fmt(r.disp)} ${esc(r.um)} disp.</div></div><input class="fi" type="number" value="${r.quantita}" max="${r.disp}" onchange="spedRighe[${i}].quantita=this.value" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(r.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="spedRighe.splice(${i},1);renderSpedRighe()">×</button></div>`
+    `<div class="mp-row">${pill('PF', 'pill-amber')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(r.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(r.desc || '')} · ${fmt(r.disp)} ${esc(r.um)} disp.</div></div><input class="fi" type="number" min="0" max="${r.disp}" value="${r.quantita}" onchange="setQuantitaDisponibile(spedRighe,${i},this.value,renderSpedRighe)" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(r.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="spedRighe.splice(${i},1);renderSpedRighe()">×</button></div>`
   ).join('');
 }
 async function salvaSped(btn) {
