@@ -234,7 +234,7 @@ router.get('/lotti-pf', wrap(async (req, res) => {
 }));
 
 router.post('/lotti-pf', wrap(async (req, res) => {
-  const { articolo_id, quantita, unita_misura, note, consumi_mp, consumi_sm } = req.body;
+  const { articolo_id, quantita, unita_misura, data_produzione, note, consumi_mp, consumi_sm } = req.body;
   await verificaDisponibilita('lotti_mp', consumi_mp, 'lotto_mp_id');
   await verificaDisponibilita('lotti_sm', consumi_sm, 'lotto_sm_id');
 
@@ -243,7 +243,7 @@ router.post('/lotti-pf', wrap(async (req, res) => {
     const { data: a } = await supabase.from('articoli_pf').select('codice').eq('id', articolo_id).maybeSingle();
     if (a) sigla = a.codice;
   }
-  const codice_lotto = await generaLottoPF(sigla, null);
+  const codice_lotto = await generaLottoPF(sigla, data_produzione);
 
   const { data: lotto, error } = await supabase.from('lotti_pf').insert({
     codice_lotto,
@@ -251,6 +251,7 @@ router.post('/lotti-pf', wrap(async (req, res) => {
     quantita: Number(quantita) || 0,
     giacenza: Number(quantita) || 0,
     unita_misura: unita_misura || 'pz',
+    data_produzione: data_produzione || null,
     note,
     stato: 'In corso',
     creato_da: req.session.user.id,

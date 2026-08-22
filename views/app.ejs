@@ -171,6 +171,7 @@
               <div class="card-title"><i class="ti ti-building-factory-2"></i>Nuovo ordine PF</div>
               <div class="fr"><label class="fl">Articolo da produrre <span class="req">*</span></label><select class="fi" id="pf-art"></select></div>
               <div class="fr"><label class="fl">Quantità <span class="req">*</span></label><div style="display:flex;gap:6px;"><input class="fi" type="number" id="pf-qty" value="0" style="flex:1;"><select class="fi" id="pf-um" style="width:70px;padding:11px 6px;"><option>kg</option><option>mq</option><option>pz</option><option>mt</option></select></div></div>
+              <div class="fr"><label class="fl">Data produzione</label><input class="fi" type="date" id="pf-data"></div>
               <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Lotti MP collegati</div>
               <div id="pf-mp-add-tabs" class="tabs" style="margin-bottom:10px;">
                 <button class="tab-btn on" onclick="pfLotAddTab('mp','manual',this)">Manuale</button>
@@ -221,6 +222,7 @@
               <div class="tw"><table><thead><tr><th>Lotto PF</th><th>Articolo</th><th>Qty</th><th>Stato</th></tr></thead><tbody id="pf-storico"></tbody></table></div>
             </div>
           </div>
+          <div id="label-pf" class="label-modal"></div>
         </div>
 
         <!-- MAGAZZINO -->
