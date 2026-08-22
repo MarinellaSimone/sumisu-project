@@ -44,15 +44,15 @@ class BarcodeCodec {
     }
 
     static parse(barcode) {
-
-        const gtin = barcode.substring(2, 16);
-        const lot = barcode.substring(18, 26);
-        const expiry = barcode.substring(28, 36);
-        const quantity = Number(barcode.substring(38));
+        const value = String(barcode || '').trim();
+        const gtin = value.substring(2, 16);
+        const productionDate = value.substring(18, 26);
+        const expiry = value.substring(28, 36);
+        const quantity = Number(value.substring(38));
 
         return {
             gtin,
-            lot,
+            productionDate,
             expiry,
             quantity
         };

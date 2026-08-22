@@ -120,15 +120,19 @@ function chiudiLabel(selector) {
     document.querySelector(selector).classList.remove("show");
 }
 
-function salvaLabel() {
-    const target = document.querySelector("#barcode-mp-content");
+function salvaLabel(selector = "#label-mp") {
+    const labelEl = document.querySelector(selector);
+    const target = labelEl?.querySelector('.barcode-mp') || labelEl;
+    if (!target) return;
+
     html2canvas(target, {
         backgroundColor: "#ffffff",
-        scale: 3, // buona risoluzione per etichette/barcode
+        scale: 3,
         ignoreElements: (el) => el.classList.contains("close-label") || el.classList.contains("save-label")
     }).then(canvas => {
         const link = document.createElement("a");
-        link.download = `lotto-${document.querySelector('.footer-mp span')?.textContent?.replace(/\D/g,'') || 'label'}.png`;
+        const fileName = target.querySelector('.footer-mp span')?.textContent?.replace(/\D/g, '') || 'label';
+        link.download = `lotto-${fileName}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
     });
@@ -139,13 +143,25 @@ function generateEtichetta(r,date,selector = "#label-mp",type = "MP") {
         .then(res => res.json())
         .then(data => {
             const labelEl = document.querySelector(selector);
-            labelEl.innerHTML = `
-                <div class="barcode-mp" id="barcode-mp-content">
-                    ${data.data}
-                    <button class="save-label" onclick="salvaLabel()" aria-label="Salva immagine"><i class="ti ti-download"></i></button>
-                    <button class="close-label" onclick="chiudiLabel('${selector}')" aria-label="Chiudi">&times;</button>
-                </div>
-            `;
+            labelEl.innerHTML = data.data;
+
+            const labelBox = labelEl.querySelector('.barcode-mp');
+            if (labelBox) {
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'save-label';
+                saveBtn.setAttribute('aria-label', 'Salva immagine');
+                saveBtn.innerHTML = '<i class="ti ti-download"></i>';
+                saveBtn.onclick = () => salvaLabel(selector);
+
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'close-label';
+                closeBtn.setAttribute('aria-label', 'Chiudi');
+                closeBtn.textContent = '×';
+                closeBtn.onclick = () => chiudiLabel(selector);
+
+                labelBox.append(saveBtn, closeBtn);
+            }
+
             labelEl.classList.add("show");
             console.log(data);
             console.log(data.label);
@@ -178,11 +194,19 @@ async function salvaMP(btn) {
 // ============================================================
 let smTipo = 'int';
 let smConsumi = [];
+let smLotAddMode = 'manual';
 function setSMTipo(t) {
   smTipo = t;
   document.getElementById('sm-int').classList.toggle('on', t === 'int');
   document.getElementById('sm-ext').classList.toggle('on', t === 'ext');
   document.getElementById('sm-ext-box').style.display = t === 'ext' ? 'block' : 'none';
+}
+function smLotAddTab(mode, btn) {
+  smLotAddMode = mode;
+  document.querySelectorAll('#sm-lot-add-tabs .tab-btn').forEach((b) => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  document.getElementById('sm-mp-manual').style.display = mode === 'manual' ? 'block' : 'none';
+  document.getElementById('sm-mp-scanner').style.display = mode === 'scanner' ? 'block' : 'none';
 }
 
 async function loadSM() {
@@ -200,12 +224,46 @@ async function loadSM() {
   } catch (e) { showToast(e.message, 'err'); }
 }
 
-function addSMConsumo() {
-  const id = val('sm-mp-sel'); if (!id) return;
+function addSMConsumoById(id) {
+  if (!id) return;
   if (smConsumi.find((c) => c.lotto_mp_id === id)) return showToast('Lotto già aggiunto', 'err');
   const lotto = (window.__mpLotti || []).find((l) => l.id === id);
+  if (!lotto) return showToast('Lotto MP non trovato', 'err');
+  if (Number(lotto.giacenza) <= 0) return showToast('Lotto MP senza giacenza disponibile', 'err');
   smConsumi.push({ lotto_mp_id: id, codice: lotto.codice_lotto, desc: lotto.materiali?.descrizione, disp: lotto.giacenza, um: lotto.unita_misura, quantita: 0 });
   renderSMConsumi();
+}
+function addSMConsumo() {
+  const id = val('sm-mp-sel');
+  if (!id) return showToast('Seleziona un lotto MP', 'err');
+  addSMConsumoById(id);
+}
+function parseSMBarcodeValue(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return {};
+  return {
+    gtin: v.substring(2, 16),
+    productionDate: v.substring(18, 26),
+    expiryDate: v.substring(28, 36),
+    quantity: Number(v.substring(38) || 0),
+  };
+}
+function addSMConsumoByScan() {
+  const scan = val('sm-mp-scan');
+  if (!scan) return showToast('Scannerizza o incolla un codice barcode', 'err');
+  const parsed = parseSMBarcodeValue(scan);
+  if (!parsed.productionDate) return showToast('Codice barcode non riconosciuto', 'err');
+  const targetDate = parsed.productionDate;
+  const targetQty = parsed.quantity || 0;
+  const lotto = (window.__mpLotti || []).find((l) => {
+    const lotDate = String(l.codice_lotto || '').match(/LT-(\d{8})-/)?.[1];
+    const ddtDate = l.ddt_data ? new Date(l.ddt_data).toISOString().slice(0, 10).replace(/-/g, '') : '';
+    const qtyOk = !targetQty || Number(l.quantita) === targetQty || Number(l.giacenza) === targetQty;
+    return qtyOk && (lotDate === targetDate || ddtDate === targetDate);
+  });
+  if (!lotto) return showToast('Nessun lotto MP trovato per il codice scannerizzato', 'err');
+  addSMConsumoById(lotto.id);
+  document.getElementById('sm-mp-scan').value = '';
 }
 function renderSMConsumi() {
   document.getElementById('sm-mp-rows').innerHTML = smConsumi.map((c, i) =>
@@ -276,12 +334,13 @@ function renderPFConsumi() {
 }
 async function salvaPF(btn) {
   const art = val('pf-art'), qty = val('pf-qty');
+  const um = val('pf-um');
   if (!art) return showToast('Seleziona un articolo', 'err');
   if (!qty || qty <= 0) return showToast('Inserisci la quantità', 'err');
   loading(true, 'Avvio produzione…');
   try {
     const r = await api('/lotti-pf', { method: 'POST', body: {
-      articolo_id: art, quantita: qty, unita_misura: 'pz',
+      articolo_id: art, quantita: qty, unita_misura: um,
       consumi_mp: pfConsumiMP.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
       consumi_sm: pfConsumiSM.map((c) => ({ lotto_sm_id: c.lotto_sm_id, quantita: c.quantita, unita_misura: c.um })),
     }});
