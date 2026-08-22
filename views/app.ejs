@@ -173,17 +173,47 @@
               <div class="fr"><label class="fl">Articolo da produrre <span class="req">*</span></label><select class="fi" id="pf-art"></select></div>
               <div class="fr"><label class="fl">Quantità <span class="req">*</span></label><div style="display:flex;gap:6px;"><input class="fi" type="number" id="pf-qty" value="0" style="flex:1;"><select class="fi" id="pf-um" style="width:70px;padding:11px 6px;"><option>kg</option><option>mq</option><option>pz</option><option>mt</option></select></div></div>
               <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Lotti MP collegati</div>
+              <div id="pf-mp-add-tabs" class="tabs" style="margin-bottom:10px;">
+                <button class="tab-btn on" onclick="pfLotAddTab('mp','manual',this)">Manuale</button>
+                <button class="tab-btn" onclick="pfLotAddTab('mp','scanner',this)">Scannerizza</button>
+              </div>
               <div class="info-box info-verde"><i class="ti ti-info-circle"></i>La quantità può essere 0 se il lotto è tracciato ma non consumato.</div>
               <div id="pf-mp-rows"></div>
-              <div style="display:flex;gap:8px;margin-bottom:14px;">
-                <select class="fi" id="pf-mp-sel" style="flex:1;font-size:13px;"><option value="">Aggiungi lotto MP…</option></select>
-                <button class="btn btn-verde" onclick="addPFConsumoMP()"><i class="ti ti-plus"></i></button>
+              <div id="pf-mp-manual" style="display:block;">
+                <div style="display:flex;gap:8px;margin-bottom:14px;">
+                  <select class="fi" id="pf-mp-sel" style="flex:1;font-size:13px;"><option value="">Aggiungi lotto MP…</option></select>
+                  <button class="btn btn-verde" onclick="addPFConsumoMP()"><i class="ti ti-plus"></i></button>
+                </div>
+              </div>
+              <div id="pf-mp-scanner" style="display:none;">
+                <div class="fr" style="margin-bottom:0;">
+                  <label class="fl">Barcode scannerizzato</label>
+                  <input class="fi" id="pf-mp-scan" placeholder="Incolla / scannerizza il valore barcode" onkeydown="if(event.key==='Enter') addPFConsumoMPByScan()">
+                </div>
+                <div style="display:flex;justify-content:flex-start;gap:8px;margin-top:8px;">
+                  <button class="btn btn-verde" onclick="addPFConsumoMPByScan()"><i class="ti ti-scan"></i>Recupera lotto</button>
+                </div>
               </div>
               <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Lotti SM collegati</div>
+              <div id="pf-sm-add-tabs" class="tabs" style="margin-bottom:10px;">
+                <button class="tab-btn on" onclick="pfLotAddTab('sm','manual',this)">Manuale</button>
+                <button class="tab-btn" onclick="pfLotAddTab('sm','scanner',this)">Scannerizza</button>
+              </div>
               <div id="pf-sm-rows"></div>
-              <div style="display:flex;gap:8px;margin-bottom:14px;">
-                <select class="fi" id="pf-sm-sel" style="flex:1;font-size:13px;"><option value="">Aggiungi lotto SM…</option></select>
-                <button class="btn btn-primary" style="background:var(--violal);border-color:#c5bfee;color:var(--viola);" onclick="addPFConsumoSM()"><i class="ti ti-plus"></i>SM</button>
+              <div id="pf-sm-manual" style="display:block;">
+                <div style="display:flex;gap:8px;margin-bottom:14px;">
+                  <select class="fi" id="pf-sm-sel" style="flex:1;font-size:13px;"><option value="">Aggiungi lotto SM…</option></select>
+                  <button class="btn btn-primary" style="background:var(--violal);border-color:#c5bfee;color:var(--viola);" onclick="addPFConsumoSM()"><i class="ti ti-plus"></i>SM</button>
+                </div>
+              </div>
+              <div id="pf-sm-scanner" style="display:none;">
+                <div class="fr" style="margin-bottom:0;">
+                  <label class="fl">Barcode scannerizzato</label>
+                  <input class="fi" id="pf-sm-scan" placeholder="Incolla / scannerizza il valore barcode" onkeydown="if(event.key==='Enter') addPFConsumoSMByScan()">
+                </div>
+                <div style="display:flex;justify-content:flex-start;gap:8px;margin-top:8px;">
+                  <button class="btn btn-primary" style="background:var(--violal);border-color:#c5bfee;color:var(--viola);" onclick="addPFConsumoSMByScan()"><i class="ti ti-scan"></i>Recupera lotto</button>
+                </div>
               </div>
               <div class="btn-row"><button class="btn btn-amber" onclick="salvaPF(this)"><i class="ti ti-player-play"></i>Avvia produzione</button></div>
             </div>

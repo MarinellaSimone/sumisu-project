@@ -297,6 +297,28 @@ async function salvaSM(btn) {
 // PRODUZIONE PF
 // ============================================================
 let pfConsumiMP = [], pfConsumiSM = [];
+let pfLotAddModes = { mp: 'manual', sm: 'manual' };
+function pfLotAddTab(type, mode, btn) {
+  pfLotAddModes[type] = mode;
+  document.querySelectorAll(`#pf-${type}-add-tabs .tab-btn`).forEach((b) => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  document.getElementById(`pf-${type}-manual`).style.display = mode === 'manual' ? 'block' : 'none';
+  document.getElementById(`pf-${type}-scanner`).style.display = mode === 'scanner' ? 'block' : 'none';
+}
+function findLotByBarcode(lotti, raw) {
+  const v = String(raw || '').trim();
+  if (!v) return null;
+  const parsed = parseSMBarcodeValue(v);
+  if (!parsed.productionDate) return null;
+  const targetDate = parsed.productionDate;
+  const targetQty = parsed.quantity || 0;
+  return (lotti || []).find((l) => {
+    const lotDate = String(l.codice_lotto || '').match(/(?:LT|SM|PF)-(\d{8})-/)?.[1];
+    const ddtDate = l.ddt_data ? new Date(l.ddt_data).toISOString().slice(0, 10).replace(/-/g, '') : '';
+    const qtyOk = !targetQty || Number(l.quantita) === targetQty || Number(l.giacenza) === targetQty;
+    return qtyOk && (lotDate === targetDate || ddtDate === targetDate);
+  }) || null;
+}
 async function loadPF() {
   try {
     const [art, mpLotti, smLotti, lotti] = await Promise.all([api('/articoli'), api('/lotti-mp'), api('/lotti-sm'), api('/lotti-pf')]);
@@ -310,19 +332,45 @@ async function loadPF() {
     ).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessun ordine</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
-function addPFConsumoMP() {
-  const id = val('pf-mp-sel'); if (!id) return;
+function addPFConsumoMPById(id) {
+  if (!id) return;
   if (pfConsumiMP.find((c) => c.lotto_mp_id === id)) return showToast('Lotto già aggiunto', 'err');
   const l = (window.__mpLotti || []).find((x) => x.id === id);
+  if (!l) return showToast('Lotto MP non trovato', 'err');
   pfConsumiMP.push({ lotto_mp_id: id, codice: l.codice_lotto, desc: l.materiali?.descrizione, disp: l.giacenza, um: l.unita_misura, quantita: 0 });
   renderPFConsumi();
 }
-function addPFConsumoSM() {
-  const id = val('pf-sm-sel'); if (!id) return;
+function addPFConsumoMP() {
+  const id = val('pf-mp-sel'); if (!id) return showToast('Seleziona un lotto MP', 'err');
+  addPFConsumoMPById(id);
+}
+function addPFConsumoMPByScan() {
+  const scan = val('pf-mp-scan');
+  if (!scan) return showToast('Scannerizza o incolla un codice barcode', 'err');
+  const lotto = findLotByBarcode(window.__mpLotti, scan);
+  if (!lotto) return showToast('Nessun lotto MP trovato per il codice scannerizzato', 'err');
+  addPFConsumoMPById(lotto.id);
+  document.getElementById('pf-mp-scan').value = '';
+}
+function addPFConsumoSMById(id) {
+  if (!id) return;
   if (pfConsumiSM.find((c) => c.lotto_sm_id === id)) return showToast('Lotto già aggiunto', 'err');
   const l = (window.__smLotti || []).find((x) => x.id === id);
+  if (!l) return showToast('Lotto SM non trovato', 'err');
   pfConsumiSM.push({ lotto_sm_id: id, codice: l.codice_lotto, desc: l.materiali?.descrizione || '', disp: l.giacenza, um: l.unita_misura, quantita: 0 });
   renderPFConsumi();
+}
+function addPFConsumoSM() {
+  const id = val('pf-sm-sel'); if (!id) return showToast('Seleziona un lotto SM', 'err');
+  addPFConsumoSMById(id);
+}
+function addPFConsumoSMByScan() {
+  const scan = val('pf-sm-scan');
+  if (!scan) return showToast('Scannerizza o incolla un codice barcode', 'err');
+  const lotto = findLotByBarcode(window.__smLotti, scan);
+  if (!lotto) return showToast('Nessun lotto SM trovato per il codice scannerizzato', 'err');
+  addPFConsumoSMById(lotto.id);
+  document.getElementById('pf-sm-scan').value = '';
 }
 function renderPFConsumi() {
   document.getElementById('pf-mp-rows').innerHTML = pfConsumiMP.map((c, i) =>
