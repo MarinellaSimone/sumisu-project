@@ -85,6 +85,21 @@ router.post('/fornitori', requireAdmin, wrap(async (req, res) => {
   res.json(data);
 }));
 
+router.get('/clienti', wrap(async (req, res) => {
+  const { data, error } = await supabase.from('clienti').select('*').order('ragione_sociale');
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.post('/clienti', requireAdmin, wrap(async (req, res) => {
+  const { ragione_sociale, partita_iva, email, telefono, stato } = req.body;
+  if (!ragione_sociale) return res.status(400).json({ error: 'Ragione sociale obbligatoria' });
+  const { data, error } = await supabase.from('clienti')
+    .insert({ ragione_sociale, partita_iva, email, telefono, stato: stato || 'Attivo' }).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
 router.get('/materiali', wrap(async (req, res) => {
   const q = supabase.from('materiali').select('*').order('codice');
   const { data, error } = req.query.tipo ? await q.eq('tipo', req.query.tipo) : await q;

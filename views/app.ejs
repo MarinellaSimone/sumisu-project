@@ -36,7 +36,7 @@
         <a class="nav-item" onclick="goPage('mag','Magazzino')" id="ni-mag"><i class="ti ti-package"></i><span>Magazzino</span></a>
         <div id="nav-admin-section" style="<%= user.ruolo === 'operatore' ? 'display:none;' : '' %>">
           <div class="nav-section">Gestione</div>
-          <a class="nav-item" onclick="goPage('sped','Spedizioni / DDT')" id="ni-sped"><i class="ti ti-truck"></i><span>Spedizioni / DDT</span></a>
+          <a class="nav-item" onclick="goPage('sped','Spedizioni PF')" id="ni-sped"><i class="ti ti-truck"></i><span>Spedizioni PF</span></a>
           <a class="nav-item" onclick="goPage('ana','Anagrafiche')" id="ni-ana"><i class="ti ti-address-book"></i><span>Anagrafiche</span></a>
           <a class="nav-item" onclick="goPage('traccia','Rintracciabilità')" id="ni-traccia"><i class="ti ti-git-branch"></i><span>Rintracciabilità</span></a>
           <a class="nav-item" onclick="goPage('utenti','Gestione utenti')" id="ni-utenti"><i class="ti ti-users"></i><span>Gestione utenti</span></a>
@@ -241,8 +241,8 @@
         <div class="page" id="page-sped">
           <div class="two-col">
             <div class="card">
-              <div class="card-title"><i class="ti ti-truck"></i>Nuova spedizione / DDT</div>
-              <div class="fr"><label class="fl">Cliente <span class="req">*</span></label><input class="fi" type="text" id="sped-cliente" placeholder="es. Alimentari Rossi S.r.l."></div>
+              <div class="card-title"><i class="ti ti-truck"></i>Spedizioni PF</div>
+              <div class="fr"><label class="fl">Cliente <span class="req">*</span></label><select class="fi" id="sped-cliente"><option value="">— seleziona cliente —</option></select></div>
               <div class="g2">
                 <div class="fr"><label class="fl">Data spedizione</label><input class="fi" type="date" id="sped-data"></div>
                 <div class="fr"><label class="fl">Vettore</label><input class="fi" type="text" id="sped-vettore" placeholder="es. BRT"></div>
@@ -267,6 +267,7 @@
         <div class="page" id="page-ana">
           <div class="tabs">
             <button class="tab-btn on" onclick="anaTab('f',this)">Fornitori</button>
+            <button class="tab-btn" onclick="anaTab('c',this)">Clienti</button>
             <button class="tab-btn" onclick="anaTab('m',this)">Materiali MP/SM</button>
             <button class="tab-btn" onclick="anaTab('a',this)">Articoli PF</button>
           </div>
@@ -280,6 +281,19 @@
               <div class="fr"><label class="fl">P.IVA</label><input class="fi" id="af-piva" placeholder="IT…"></div>
               <div class="fr"><label class="fl">Stato</label><select class="fi" id="af-stato"><option>Attivo</option><option>Sospeso</option></select></div>
               <div class="btn-row"><button class="btn btn-primary" onclick="addFornitore(this)"><i class="ti ti-plus"></i>Aggiungi</button></div>
+            </div>
+          </div>
+          <!-- Clienti -->
+          <div id="ana-c" style="display:none;" class="two-col">
+            <div class="card"><div class="card-title"><i class="ti ti-users"></i>Clienti</div>
+              <div class="tw"><table><thead><tr><th>Ragione sociale</th><th>P.IVA</th><th>Email</th><th>Stato</th></tr></thead><tbody id="ana-c-body"></tbody></table></div>
+            </div>
+            <div class="card"><div class="card-title">Aggiungi cliente</div>
+              <div class="fr"><label class="fl">Ragione sociale <span class="req">*</span></label><input class="fi" id="ac-nome"></div>
+              <div class="fr"><label class="fl">P.IVA</label><input class="fi" id="ac-piva" placeholder="IT…"></div>
+              <div class="g2"><div class="fr"><label class="fl">Email</label><input class="fi" id="ac-email" type="email"></div><div class="fr"><label class="fl">Telefono</label><input class="fi" id="ac-tel"></div></div>
+              <div class="fr"><label class="fl">Stato</label><select class="fi" id="ac-stato"><option>Attivo</option><option>Sospeso</option></select></div>
+              <div class="btn-row"><button class="btn btn-primary" onclick="addCliente(this)"><i class="ti ti-plus"></i>Aggiungi</button></div>
             </div>
           </div>
           <!-- Materiali -->
