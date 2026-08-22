@@ -304,7 +304,10 @@
             <div class="card"><div class="card-title">Aggiungi materiale</div>
               <div class="g2"><div class="fr"><label class="fl">Codice <span class="req">*</span></label><input class="fi" id="am-cod" placeholder="es. FIL"></div><div class="fr"><label class="fl">Tipo</label><select class="fi" id="am-tipo"><option>MP</option><option>SM</option></select></div></div>
               <div class="fr"><label class="fl">Descrizione <span class="req">*</span></label><input class="fi" id="am-desc"></div>
-              <div class="g2"><div class="fr"><label class="fl">Unità misura</label><select class="fi" id="am-um"><option>kg</option><option>pz</option><option>mq</option><option>mt</option></select></div><div class="fr"><label class="fl">Soglia minima</label><input class="fi" type="number" id="am-soglia" value="0"></div></div>
+              <div class="g2">
+                <div class="fr"><label class="fl">Quantità minima</label><input class="fi" type="number" id="am-soglia" value="0"></div>
+                <div class="fr"><label class="fl">Unità misura</label><select class="fi" id="am-um"><option>kg</option><option>pz</option><option>mq</option><option>mt</option></select></div>
+              </div>
               <div class="btn-row"><button class="btn btn-primary" onclick="addMateriale(this)"><i class="ti ti-plus"></i>Aggiungi</button></div>
             </div>
           </div>
