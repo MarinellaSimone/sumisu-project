@@ -132,10 +132,12 @@ router.get('/articoli', wrap(async (req, res) => {
 }));
 
 router.post('/articoli', requireAdmin, wrap(async (req, res) => {
-  const { codice, descrizione, gtin14, stato } = req.body;
+  const { codice, codice_numerico, descrizione, gtin14, stato } = req.body;
   if (!codice || !descrizione) return res.status(400).json({ error: 'Codice e descrizione obbligatori' });
+  if (!/^[A-Za-z0-9]{4}$/.test(codice)) return res.status(400).json({ error: 'Il codice deve contenere 4 caratteri alfanumerici' });
+  if (!/^[0-9]{4}$/.test(codice_numerico || '')) return res.status(400).json({ error: 'Il codice numerico deve contenere 4 cifre' });
   const { data, error } = await supabase.from('articoli_pf')
-    .insert({ codice, descrizione, gtin14, stato: stato || 'Attivo' }).select().single();
+    .insert({ codice: codice.toUpperCase(), codice_numerico, descrizione, gtin14, stato: stato || 'Attivo' }).select().single();
   if (error) throw error;
   res.json(data);
 }));

@@ -332,10 +332,11 @@
           <!-- Articoli -->
           <div id="ana-a" style="display:none;" class="two-col">
             <div class="card"><div class="card-title">Articoli PF</div>
-              <div class="tw"><table><thead><tr><th>Codice</th><th>Descrizione</th><th>GTIN-14</th><th>Stato</th></tr></thead><tbody id="ana-a-body"></tbody></table></div>
+              <div class="tw"><table><thead><tr><th>Codice</th><th>Codice numerico</th><th>Descrizione</th><th>GTIN-14</th><th>Stato</th></tr></thead><tbody id="ana-a-body"></tbody></table></div>
             </div>
             <div class="card"><div class="card-title">Aggiungi articolo PF</div>
-              <div class="g2"><div class="fr"><label class="fl">Codice <span class="req">*</span></label><input class="fi" id="aa-cod" placeholder="SC-003"></div><div class="fr"><label class="fl">GTIN-14</label><input class="fi" id="aa-gtin" maxlength="14"></div></div>
+              <div class="g2"><div class="fr"><label class="fl">Codice <span class="req">*</span></label><input class="fi" id="aa-cod" maxlength="4" pattern="[A-Za-z0-9]{4}" placeholder="SC03"></div><div class="fr"><label class="fl">Codice numerico <span class="req">*</span></label><input class="fi" id="aa-cod-num" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="es. 0001"></div></div>
+              <div class="fr"><label class="fl">GTIN-14</label><input class="fi" id="aa-gtin" maxlength="14" inputmode="numeric" pattern="[0-9]{14}" placeholder="es. 09788423400123"></div>
               <div class="fr"><label class="fl">Descrizione <span class="req">*</span></label><input class="fi" id="aa-desc"></div>
               <div class="fr"><label class="fl">Stato</label><select class="fi" id="aa-stato"><option>Attivo</option><option>Bozza</option></select></div>
               <div class="btn-row"><button class="btn btn-primary" onclick="addArticolo(this)"><i class="ti ti-plus"></i>Aggiungi</button></div>

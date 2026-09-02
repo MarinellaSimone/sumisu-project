@@ -56,9 +56,9 @@ async function upsertMateriali() {
 
 async function upsertArticoli() {
   const rows = [
-    { codice: 'SC-001', descrizione: 'Scatola 300×200×150mm', gtin14: '09788423400123', stato: 'Attivo' },
-    { codice: 'SC-002', descrizione: 'Scatola 400×300×200mm', gtin14: '09788423400130', stato: 'Attivo' },
-    { codice: 'IM-010', descrizione: 'Imb. food grade 1L',    gtin14: '09788423400147', stato: 'Attivo' },
+    { codice: 'SC01', codice_numerico: '0001', descrizione: 'Scatola 300×200×150mm', gtin14: '09788423400123', stato: 'Attivo' },
+    { codice: 'SC02', codice_numerico: '0002', descrizione: 'Scatola 400×300×200mm', gtin14: '09788423400130', stato: 'Attivo' },
+    { codice: 'IM10', codice_numerico: '0003', descrizione: 'Imb. food grade 1L', gtin14: '09788423400147', stato: 'Attivo' },
   ];
   for (const r of rows) {
     const { error } = await supabase.from('articoli_pf').upsert(r, { onConflict: 'codice' });
@@ -96,9 +96,9 @@ async function seedLotti() {
   }
 
   const pfRows = [
-    { codice_lotto: 'PF-20260707-SC001-001', articolo_id: aById('SC-001'), quantita: 5000, giacenza: 5000, unita_misura: 'pz', stato: 'In corso' },
-    { codice_lotto: 'PF-20260707-IM010-002', articolo_id: aById('IM-010'), quantita: 12000, giacenza: 12000, unita_misura: 'pz', stato: 'Attesa' },
-    { codice_lotto: 'PF-20260706-SC002-005', articolo_id: aById('SC-002'), quantita: 3200, giacenza: 3200, unita_misura: 'pz', stato: 'Completato' },
+    { codice_lotto: 'PF-20260707-SC01-001', articolo_id: aById('SC01'), quantita: 5000, giacenza: 5000, unita_misura: 'pz', stato: 'In corso' },
+    { codice_lotto: 'PF-20260707-IM10-002', articolo_id: aById('IM10'), quantita: 12000, giacenza: 12000, unita_misura: 'pz', stato: 'Attesa' },
+    { codice_lotto: 'PF-20260706-SC02-005', articolo_id: aById('SC02'), quantita: 3200, giacenza: 3200, unita_misura: 'pz', stato: 'Completato' },
   ];
   for (const r of pfRows) {
     const { error } = await supabase.from('lotti_pf').upsert(r, { onConflict: 'codice_lotto' });

@@ -507,6 +507,7 @@ function anaTab(t, btn) {
   if (btn) btn.classList.add('on');
 }
 let materialiAnagrafica = [];
+let articoliAnagrafica = [];
 function suggestNextMaterialCode(materiali) {
   const input = document.getElementById('am-cod-num');
   if (!input || input.value.trim() && input.value !== input.dataset.suggestedCode) return;
@@ -522,11 +523,23 @@ function suggestNextMaterialCode(materiali) {
 function updateMaterialCodeSuggestion() {
   suggestNextMaterialCode(materialiAnagrafica);
 }
+function suggestNextArticleCode(articoli) {
+  const input = document.getElementById('aa-cod-num');
+  if (!input || input.value.trim() && input.value !== input.dataset.suggestedCode) return;
+  const usedCodes = articoli
+    .map((articolo) => Number.parseInt(articolo.codice_numerico, 10))
+    .filter((codice) => Number.isInteger(codice) && codice >= 0);
+  const nextCode = (usedCodes.length ? Math.max(...usedCodes) + 1 : 1).toString().padStart(4, '0');
+  input.value = nextCode;
+  input.dataset.suggestedCode = nextCode;
+}
 async function loadAna() {
   try {
     const [forn, clienti, mat, art, tipologie] = await Promise.all([api('/fornitori'), api('/clienti'), api('/materiali'), api('/articoli'), api('/tipologie')]);
     materialiAnagrafica = mat;
+    articoliAnagrafica = art;
     suggestNextMaterialCode(materialiAnagrafica);
+    suggestNextArticleCode(articoliAnagrafica);
     document.getElementById('ana-f-body').innerHTML = forn.map((f) =>
       `<tr><td>${esc(f.ragione_sociale)}</td><td class="mono">${esc(f.piva || '—')}</td><td>${statoPill(f.stato)}</td></tr>`).join('') || '<tr><td colspan="3"><div class="empty"><p>Nessun fornitore</p></div></td></tr>';
     document.getElementById('ana-c-body').innerHTML = clienti.map((c) =>
@@ -534,7 +547,7 @@ async function loadAna() {
     document.getElementById('ana-m-body').innerHTML = mat.map((m) =>
       `<tr><td class="mono">${esc(m.codice)}</td><td class="mono">${esc(m.codice_numerico)}</td><td>${esc(m.descrizione)}</td><td>${pill(m.tipo, m.tipo === 'MP' ? 'pill-verde' : 'pill-viola')}</td><td>${esc(m.unita_misura)}</td></tr>`).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun materiale</p></div></td></tr>';
     document.getElementById('ana-a-body').innerHTML = art.map((a) =>
-      `<tr><td class="mono">${esc(a.codice)}</td><td>${esc(a.descrizione)}</td><td class="mono">${esc(a.gtin14 || '—')}</td><td>${statoPill(a.stato)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessun articolo</p></div></td></tr>';
+      `<tr><td class="mono">${esc(a.codice)}</td><td class="mono">${esc(a.codice_numerico)}</td><td>${esc(a.descrizione)}</td><td class="mono">${esc(a.gtin14 || '—')}</td><td>${statoPill(a.stato)}</td></tr>`).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun articolo</p></div></td></tr>';
     const tipologiaColumns = Object.keys(tipologie[0] || {});
     document.getElementById('ana-t-head').innerHTML = tipologiaColumns.length
       ? `<tr>${tipologiaColumns.map((column) => `<th>${esc(column)}</th>`).join('')}</tr>`
@@ -583,12 +596,14 @@ async function addMateriale(btn) {
   } catch (e) { showToast(e.message, 'err'); }
 }
 async function addArticolo(btn) {
-  const codice = val('aa-cod'), descrizione = val('aa-desc');
+  const codice = val('aa-cod').trim(), codice_numerico = val('aa-cod-num').trim(), descrizione = val('aa-desc');
   if (!codice || !descrizione) return showToast('Codice e descrizione obbligatori', 'err');
+  if (!/^[A-Za-z0-9]{4}$/.test(codice)) return showToast('Il codice deve contenere 4 caratteri alfanumerici', 'err');
+  if (!/^[0-9]{4}$/.test(codice_numerico)) return showToast('Il codice numerico deve contenere 4 cifre', 'err');
   try {
-    await api('/articoli', { method: 'POST', body: { codice, descrizione, gtin14: val('aa-gtin'), stato: val('aa-stato') } });
+    await api('/articoli', { method: 'POST', body: { codice, codice_numerico, descrizione, gtin14: val('aa-gtin'), stato: val('aa-stato') } });
     showToast('Articolo aggiunto');
-    ['aa-cod', 'aa-desc', 'aa-gtin'].forEach((id) => (document.getElementById(id).value = ''));
+    ['aa-cod', 'aa-cod-num', 'aa-desc', 'aa-gtin'].forEach((id) => (document.getElementById(id).value = ''));
     loadAna();
   } catch (e) { showToast(e.message, 'err'); }
 }
