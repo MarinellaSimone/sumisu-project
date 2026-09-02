@@ -61,6 +61,14 @@ npm install
 npm run init-db      # crea utenti demo + anagrafiche + lotti di esempio
 ```
 
+Per un database gia esistente, esegui prima `db/migration_add_materiali_codice_numerico.sql`
+nell'SQL Editor di Supabase.
+
+La tabella `tipologie` (`tipologia`, `codice`) e gestita manualmente su Supabase;
+l'applicazione la visualizza soltanto in lettura. Per nuove installazioni viene
+creata da `db/schema.sql`; per database esistenti puoi eseguire
+`db/migration_add_tipologie.sql`.
+
 ### 4. Avvia
 ```bash
 npm start            # oppure: npm run dev  (auto-reload)

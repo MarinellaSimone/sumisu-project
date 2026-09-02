@@ -107,11 +107,19 @@ router.get('/materiali', wrap(async (req, res) => {
   res.json(data);
 }));
 
+router.get('/tipologie', wrap(async (req, res) => {
+  const { data, error } = await supabase.from('tipologie').select('tipologia,codice').order('tipologia').order('codice');
+  if (error) throw error;
+  res.json(data);
+}));
+
 router.post('/materiali', requireAdmin, wrap(async (req, res) => {
-  const { codice, descrizione, tipo, unita_misura, soglia_minima } = req.body;
+  const { codice, codice_numerico, descrizione, tipo, unita_misura, soglia_minima } = req.body;
   if (!codice || !descrizione) return res.status(400).json({ error: 'Codice e descrizione obbligatori' });
+  if (!/^[A-Za-z0-9]{4}$/.test(codice)) return res.status(400).json({ error: 'Il codice deve contenere 4 caratteri alfanumerici' });
+  if (!/^[0-9]{4}$/.test(codice_numerico || '')) return res.status(400).json({ error: 'Il codice numerico deve contenere 4 cifre' });
   const { data, error } = await supabase.from('materiali')
-    .insert({ codice: codice.toUpperCase(), descrizione, tipo: tipo || 'MP', unita_misura: unita_misura || 'kg', soglia_minima: soglia_minima || 0 })
+    .insert({ codice: codice.toUpperCase(), codice_numerico, descrizione, tipo: tipo || 'MP', unita_misura: unita_misura || 'kg', soglia_minima: soglia_minima || 0 })
     .select().single();
   if (error) throw error;
   res.json(data);
