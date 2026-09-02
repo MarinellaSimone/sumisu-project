@@ -115,6 +115,7 @@ create table if not exists lotti_pf (
   quantita      numeric not null default 0,
   unita_misura  text not null default 'pz',
   giacenza      numeric not null default 0,
+  data_produzione date,
   stato         text not null default 'In corso' check (stato in ('In corso','Attesa','Completato','Pronto','Spedito')),
   note          text,
   creato_da     uuid references utenti(id),

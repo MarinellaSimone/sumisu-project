@@ -338,6 +338,7 @@ async function loadPF() {
     window.__mpLotti = mpLotti; window.__smLotti = smLotti;
     fillSelect('pf-mp-sel', mpLotti.map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto MP…');
     fillSelect('pf-sm-sel', smLotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto SM…');
+    if (!document.getElementById('pf-data').value) document.getElementById('pf-data').value = today();
     pfConsumiMP = []; pfConsumiSM = []; renderPFConsumi();
     document.getElementById('pf-storico').innerHTML = lotti.map((l) =>
       `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td></tr>`
@@ -400,10 +401,11 @@ async function salvaPF(btn) {
   loading(true, 'Avvio produzione…');
   try {
     const r = await api('/lotti-pf', { method: 'POST', body: {
-      articolo_id: art, quantita: qty, unita_misura: um,
+      articolo_id: art, quantita: qty, unita_misura: um, data_produzione: val('pf-data'),
       consumi_mp: pfConsumiMP.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
       consumi_sm: pfConsumiSM.map((c) => ({ lotto_sm_id: c.lotto_sm_id, quantita: c.quantita, unita_misura: c.um })),
     }});
+    generateEtichetta(r,r.data_produzione,"#label-pf","PF");
     showToast(`Ordine PF avviato! Lotto ${r.codice_lotto}`);
     document.getElementById('pf-qty').value = 0;
     loadPF();
