@@ -41,11 +41,11 @@ async function upsertFornitori() {
 
 async function upsertMateriali() {
   const rows = [
-    { codice: 'CAR', descrizione: 'Cartone 3 onde B/C',       tipo: 'MP', unita_misura: 'kg', soglia_minima: 50 },
-    { codice: 'INC', descrizione: 'Inchiostro base acqua',    tipo: 'MP', unita_misura: 'kg', soglia_minima: 40 },
-    { codice: 'COL', descrizione: 'Colla vinilica',           tipo: 'MP', unita_misura: 'kg', soglia_minima: 25 },
-    { codice: 'SCT', descrizione: 'Fustellato grezzo',        tipo: 'SM', unita_misura: 'pz' },
-    { codice: 'BOB', descrizione: 'Bobina stampata',          tipo: 'SM', unita_misura: 'mt' },
+    { codice: 'CART', codice_numerico: '0001', descrizione: 'Cartone 3 onde B/C', tipo: 'MP', unita_misura: 'kg', soglia_minima: 50 },
+    { codice: 'INCH', codice_numerico: '0002', descrizione: 'Inchiostro base acqua', tipo: 'MP', unita_misura: 'kg', soglia_minima: 40 },
+    { codice: 'COLL', codice_numerico: '0003', descrizione: 'Colla vinilica', tipo: 'MP', unita_misura: 'kg', soglia_minima: 25 },
+    { codice: 'FUST', codice_numerico: '0004', descrizione: 'Fustellato grezzo', tipo: 'SM', unita_misura: 'pz' },
+    { codice: 'BOBI', codice_numerico: '0005', descrizione: 'Bobina stampata', tipo: 'SM', unita_misura: 'mt' },
   ];
   for (const r of rows) {
     const { error } = await supabase.from('materiali').upsert(r, { onConflict: 'codice' });
@@ -56,9 +56,9 @@ async function upsertMateriali() {
 
 async function upsertArticoli() {
   const rows = [
-    { codice: 'SC-001', descrizione: 'Scatola 300×200×150mm', gtin14: '09788423400123', stato: 'Attivo' },
-    { codice: 'SC-002', descrizione: 'Scatola 400×300×200mm', gtin14: '09788423400130', stato: 'Attivo' },
-    { codice: 'IM-010', descrizione: 'Imb. food grade 1L',    gtin14: '09788423400147', stato: 'Attivo' },
+    { codice: 'SC01', codice_numerico: '0001', descrizione: 'Scatola 300×200×150mm', gtin14: '09788423400123', stato: 'Attivo' },
+    { codice: 'SC02', codice_numerico: '0002', descrizione: 'Scatola 400×300×200mm', gtin14: '09788423400130', stato: 'Attivo' },
+    { codice: 'IM10', codice_numerico: '0003', descrizione: 'Imb. food grade 1L', gtin14: '09788423400147', stato: 'Attivo' },
   ];
   for (const r of rows) {
     const { error } = await supabase.from('articoli_pf').upsert(r, { onConflict: 'codice' });
@@ -77,9 +77,9 @@ async function seedLotti() {
   const aById = (c) => (art || []).find(a => a.codice === c)?.id;
 
   const mpRows = [
-    { codice_lotto: 'LT-20260707-CAR-001', fornitore_id: fById('Cartiera'), materiale_id: mById('CAR'), ddt_numero: '2026/0445', ddt_data: '2026-07-07', quantita: 400, giacenza: 400, unita_misura: 'kg', n_pedane: 4, stato: 'Ok' },
-    { codice_lotto: 'LT-20260706-INC-002', fornitore_id: fById('ColorPrint'), materiale_id: mById('INC'), ddt_numero: '2026/0432', ddt_data: '2026-07-06', quantita: 33, giacenza: 33, unita_misura: 'kg', n_pedane: 1, stato: 'Ok' },
-    { codice_lotto: 'LT-20260705-COL-001', fornitore_id: fById('AdhesivePro'), materiale_id: mById('COL'), ddt_numero: '2026/0410', ddt_data: '2026-07-05', quantita: 18, giacenza: 18, unita_misura: 'kg', n_pedane: 1, stato: 'Soglia' },
+    { codice_lotto: 'LT-20260707-CART-001', fornitore_id: fById('Cartiera'), materiale_id: mById('CART'), ddt_numero: '2026/0445', ddt_data: '2026-07-07', quantita: 400, giacenza: 400, unita_misura: 'kg', n_pedane: 4, stato: 'Ok' },
+    { codice_lotto: 'LT-20260706-INCH-002', fornitore_id: fById('ColorPrint'), materiale_id: mById('INCH'), ddt_numero: '2026/0432', ddt_data: '2026-07-06', quantita: 33, giacenza: 33, unita_misura: 'kg', n_pedane: 1, stato: 'Ok' },
+    { codice_lotto: 'LT-20260705-COLL-001', fornitore_id: fById('AdhesivePro'), materiale_id: mById('COLL'), ddt_numero: '2026/0410', ddt_data: '2026-07-05', quantita: 18, giacenza: 18, unita_misura: 'kg', n_pedane: 1, stato: 'Soglia' },
   ];
   for (const r of mpRows) {
     const { error } = await supabase.from('lotti_mp').upsert(r, { onConflict: 'codice_lotto' });
@@ -87,8 +87,8 @@ async function seedLotti() {
   }
 
   const smRows = [
-    { codice_lotto: 'SM-20260707-SCT-001', tipo_semilavorato: mById('SCT'), lavorazione: 'interna', quantita: 3000, giacenza: 3000, unita_misura: 'pz', data_lavorazione: '2026-07-07', stato: 'Disponibile' },
-    { codice_lotto: 'SM-20260706-BOB-002', tipo_semilavorato: mById('BOB'), lavorazione: 'esterna', fornitore_sm_id: fById('ColorPrint'), quantita: 800, giacenza: 800, unita_misura: 'mt', data_lavorazione: '2026-07-06', stato: 'In uso' },
+    { codice_lotto: 'SM-20260707-FUST-001', tipo_semilavorato: mById('FUST'), lavorazione: 'interna', quantita: 3000, giacenza: 3000, unita_misura: 'pz', data_lavorazione: '2026-07-07', stato: 'Disponibile' },
+    { codice_lotto: 'SM-20260706-BOBI-002', tipo_semilavorato: mById('BOBI'), lavorazione: 'esterna', fornitore_sm_id: fById('ColorPrint'), quantita: 800, giacenza: 800, unita_misura: 'mt', data_lavorazione: '2026-07-06', stato: 'In uso' },
   ];
   for (const r of smRows) {
     const { error } = await supabase.from('lotti_sm').upsert(r, { onConflict: 'codice_lotto' });
@@ -96,9 +96,9 @@ async function seedLotti() {
   }
 
   const pfRows = [
-    { codice_lotto: 'PF-20260707-SC001-001', articolo_id: aById('SC-001'), quantita: 5000, giacenza: 5000, unita_misura: 'pz', stato: 'In corso' },
-    { codice_lotto: 'PF-20260707-IM010-002', articolo_id: aById('IM-010'), quantita: 12000, giacenza: 12000, unita_misura: 'pz', stato: 'Attesa' },
-    { codice_lotto: 'PF-20260706-SC002-005', articolo_id: aById('SC-002'), quantita: 3200, giacenza: 3200, unita_misura: 'pz', stato: 'Completato' },
+    { codice_lotto: 'PF-20260707-SC01-001', articolo_id: aById('SC01'), quantita: 5000, giacenza: 5000, unita_misura: 'pz', stato: 'In corso' },
+    { codice_lotto: 'PF-20260707-IM10-002', articolo_id: aById('IM10'), quantita: 12000, giacenza: 12000, unita_misura: 'pz', stato: 'Attesa' },
+    { codice_lotto: 'PF-20260706-SC02-005', articolo_id: aById('SC02'), quantita: 3200, giacenza: 3200, unita_misura: 'pz', stato: 'Completato' },
   ];
   for (const r of pfRows) {
     const { error } = await supabase.from('lotti_pf').upsert(r, { onConflict: 'codice_lotto' });

@@ -14,22 +14,24 @@ class BarcodeCodec {
     }
 
     static create({
-        productionDate,
-        expiryDate = productionDate,
-        quantity
+        expiryDate,
+        quantity,
+        codTipologia,
+        codNumerico,
+        codIncrementale,
     }) {
-        const prod = this.formatDate(productionDate);
-        const exp = this.formatDate(expiryDate);
 
+        const exp = this.formatDate(expiryDate);
+        const codUnivoco = `${codTipologia}${codNumerico}${codIncrementale}`;
         const encoded =
             `01${FIXED_GTIN}` +
-            `10${prod}` +
+            `10${codUnivoco}` +
             `17${exp}` +
             `37${quantity}`;
 
         const human =
             `(01) ${FIXED_GTIN} ` +
-            `(10) ${prod} ` +
+            `(10) ${codUnivoco} ` +
             `(17) ${exp} ` +
             `(37) ${quantity}`;
 
@@ -37,7 +39,6 @@ class BarcodeCodec {
             value: encoded,
             human,
             gtin: FIXED_GTIN,
-            productionDate: prod,
             expiryDate: exp,
             quantity
         };

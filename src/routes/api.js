@@ -107,11 +107,19 @@ router.get('/materiali', wrap(async (req, res) => {
   res.json(data);
 }));
 
+router.get('/tipologie', wrap(async (req, res) => {
+  const { data, error } = await supabase.from('tipologie').select('tipologia,codice').order('tipologia').order('codice');
+  if (error) throw error;
+  res.json(data);
+}));
+
 router.post('/materiali', requireAdmin, wrap(async (req, res) => {
-  const { codice, descrizione, tipo, unita_misura, soglia_minima } = req.body;
+  const { codice, codice_numerico, descrizione, tipo, unita_misura, soglia_minima } = req.body;
   if (!codice || !descrizione) return res.status(400).json({ error: 'Codice e descrizione obbligatori' });
+  if (!/^[A-Za-z0-9]{4}$/.test(codice)) return res.status(400).json({ error: 'Il codice deve contenere 4 caratteri alfanumerici' });
+  if (!/^[0-9]{4}$/.test(codice_numerico || '')) return res.status(400).json({ error: 'Il codice numerico deve contenere 4 cifre' });
   const { data, error } = await supabase.from('materiali')
-    .insert({ codice: codice.toUpperCase(), descrizione, tipo: tipo || 'MP', unita_misura: unita_misura || 'kg', soglia_minima: soglia_minima || 0 })
+    .insert({ codice: codice.toUpperCase(), codice_numerico, descrizione, tipo: tipo || 'MP', unita_misura: unita_misura || 'kg', soglia_minima: soglia_minima || 0 })
     .select().single();
   if (error) throw error;
   res.json(data);
@@ -124,10 +132,12 @@ router.get('/articoli', wrap(async (req, res) => {
 }));
 
 router.post('/articoli', requireAdmin, wrap(async (req, res) => {
-  const { codice, descrizione, gtin14, stato } = req.body;
+  const { codice, codice_numerico, descrizione, gtin14, stato } = req.body;
   if (!codice || !descrizione) return res.status(400).json({ error: 'Codice e descrizione obbligatori' });
+  if (!/^[A-Za-z0-9]{4}$/.test(codice)) return res.status(400).json({ error: 'Il codice deve contenere 4 caratteri alfanumerici' });
+  if (!/^[0-9]{4}$/.test(codice_numerico || '')) return res.status(400).json({ error: 'Il codice numerico deve contenere 4 cifre' });
   const { data, error } = await supabase.from('articoli_pf')
-    .insert({ codice, descrizione, gtin14, stato: stato || 'Attivo' }).select().single();
+    .insert({ codice: codice.toUpperCase(), codice_numerico, descrizione, gtin14, stato: stato || 'Attivo' }).select().single();
   if (error) throw error;
   res.json(data);
 }));
@@ -186,10 +196,10 @@ router.get('/lotti-sm', wrap(async (req, res) => {
 router.post('/lotti-sm', wrap(async (req, res) => {
   const { tipo_semilavorato, lavorazione, fornitore_sm_id, ddt_numero, ddt_data,
           quantita, unita_misura, data_lavorazione, note, consumi } = req.body;
-  await verificaDisponibilita('lotti_mp', consumi, 'lotto_mp_id');
+  await verificaDisponibilita('lotti_mp', consumi, 'lotto_mp_id'); //TODO: verificare perche ci sono gli id "mp" e non "sm" nei consumi
 
   const { data: materiale } = await supabase.from('materiali').select('codice').eq('id', tipo_semilavorato).maybeSingle();
-  const sigla = (materiale?.codice || 'SM').replace(/[^A-Za-z]/g, '').slice(0, 3);
+  const sigla = (materiale?.codice || 'SM').replace(/[^A-Za-z]/g, '').slice(0, 4);
   const codice_lotto = await generaLottoSM(sigla, data_lavorazione);
 
   const { data: lotto, error } = await supabase.from('lotti_sm').insert({

@@ -286,6 +286,7 @@
             <button class="tab-btn" onclick="anaTab('c',this)">Clienti</button>
             <button class="tab-btn" onclick="anaTab('m',this)">Materiali MP/SM</button>
             <button class="tab-btn" onclick="anaTab('a',this)">Articoli PF</button>
+            <button class="tab-btn" onclick="anaTab('t',this)">Codici tipologie</button>
           </div>
           <!-- Fornitori -->
           <div id="ana-f" class="two-col">
@@ -315,10 +316,11 @@
           <!-- Materiali -->
           <div id="ana-m" style="display:none;" class="two-col">
             <div class="card"><div class="card-title">Materiali MP / SM</div>
-              <div class="tw"><table><thead><tr><th>Codice</th><th>Descrizione</th><th>Tipo</th><th>U.M.</th></tr></thead><tbody id="ana-m-body"></tbody></table></div>
+              <div class="tw"><table><thead><tr><th>Codice</th><th>Codice numerico</th><th>Descrizione</th><th>Tipo</th><th>U.M.</th></tr></thead><tbody id="ana-m-body"></tbody></table></div>
             </div>
             <div class="card"><div class="card-title">Aggiungi materiale</div>
-              <div class="g2"><div class="fr"><label class="fl">Codice <span class="req">*</span></label><input class="fi" id="am-cod" placeholder="es. FIL"></div><div class="fr"><label class="fl">Tipo</label><select class="fi" id="am-tipo"><option>MP</option><option>SM</option></select></div></div>
+              <div class="g2"><div class="fr"><label class="fl">Codice <span class="req">*</span></label><input class="fi" id="am-cod" maxlength="4" pattern="[A-Za-z0-9]{4}" placeholder="es. FILM"></div><div class="fr"><label class="fl">Codice numerico <span class="req">*</span></label><input class="fi" id="am-cod-num" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="es. 0001"></div></div>
+              <div class="fr"><label class="fl">Tipo</label><select class="fi" id="am-tipo" onchange="updateMaterialCodeSuggestion()"><option>MP</option><option>SM</option></select></div>
               <div class="fr"><label class="fl">Descrizione <span class="req">*</span></label><input class="fi" id="am-desc"></div>
               <div class="g2">
                 <div class="fr"><label class="fl">Quantità minima</label><input class="fi" type="number" id="am-soglia" value="0"></div>
@@ -330,13 +332,21 @@
           <!-- Articoli -->
           <div id="ana-a" style="display:none;" class="two-col">
             <div class="card"><div class="card-title">Articoli PF</div>
-              <div class="tw"><table><thead><tr><th>Codice</th><th>Descrizione</th><th>GTIN-14</th><th>Stato</th></tr></thead><tbody id="ana-a-body"></tbody></table></div>
+              <div class="tw"><table><thead><tr><th>Codice</th><th>Codice numerico</th><th>Descrizione</th><th>GTIN-14</th><th>Stato</th></tr></thead><tbody id="ana-a-body"></tbody></table></div>
             </div>
             <div class="card"><div class="card-title">Aggiungi articolo PF</div>
-              <div class="g2"><div class="fr"><label class="fl">Codice <span class="req">*</span></label><input class="fi" id="aa-cod" placeholder="SC-003"></div><div class="fr"><label class="fl">GTIN-14</label><input class="fi" id="aa-gtin" maxlength="14"></div></div>
+              <div class="g2"><div class="fr"><label class="fl">Codice <span class="req">*</span></label><input class="fi" id="aa-cod" maxlength="4" pattern="[A-Za-z0-9]{4}" placeholder="SC03"></div><div class="fr"><label class="fl">Codice numerico <span class="req">*</span></label><input class="fi" id="aa-cod-num" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="es. 0001"></div></div>
+              <div class="fr"><label class="fl">GTIN-14</label><input class="fi" id="aa-gtin" maxlength="14" inputmode="numeric" pattern="[0-9]{14}" placeholder="es. 09788423400123"></div>
               <div class="fr"><label class="fl">Descrizione <span class="req">*</span></label><input class="fi" id="aa-desc"></div>
               <div class="fr"><label class="fl">Stato</label><select class="fi" id="aa-stato"><option>Attivo</option><option>Bozza</option></select></div>
               <div class="btn-row"><button class="btn btn-primary" onclick="addArticolo(this)"><i class="ti ti-plus"></i>Aggiungi</button></div>
+            </div>
+          </div>
+          <!-- Codici tipologie -->
+          <div id="ana-t" style="display:none;">
+            <div class="card">
+              <div class="card-title"><i class="ti ti-list-numbers"></i>Codici tipologie</div>
+              <div class="tw"><table><thead id="ana-t-head"></thead><tbody id="ana-t-body"></tbody></table></div>
             </div>
           </div>
         </div>

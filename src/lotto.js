@@ -29,7 +29,7 @@ async function generaLottoMP(codiceMateriale, data) {
 // SM-AAAAMMGG-TIPO-NNN
 async function generaLottoSM(sigla, data) {
   const dt = oggiCompatto(data ? new Date(data) : new Date());
-  const sg = (sigla || 'SM').toUpperCase().slice(0, 3);
+  const sg = (sigla || 'SM').toUpperCase().slice(0, 4);
   const prefix = `SM-${dt}-${sg}-`;
   const n = await prossimoProgressivo('lotti_sm', prefix);
   return `${prefix}${String(n).padStart(3, '0')}`;

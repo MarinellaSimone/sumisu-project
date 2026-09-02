@@ -40,25 +40,37 @@ create table if not exists clienti (
   creato_il        timestamptz not null default now()
 );
 
+-- ---------- CODICI TIPOLOGIE (sola lettura nell'applicazione) ----------
+create table if not exists tipologie (
+  tipologia text not null,
+  codice    text not null
+);
+
 -- ---------- MATERIALI (MP / SM) ----------
 create table if not exists materiali (
   id          uuid primary key default gen_random_uuid(),
-  codice      text unique not null,          -- es. CAR, INC, SCT, BOB
+  codice      text unique not null,          -- codice alfanumerico di 4 caratteri
   descrizione text not null,
   tipo        text not null check (tipo in ('MP','SM')),
   unita_misura text not null default 'kg',   -- kg, pz, mq, mt
   soglia_minima numeric default 0,
-  creato_il   timestamptz not null default now()
+  creato_il   timestamptz not null default now(),
+  codice_numerico text not null,
+  constraint materiali_codice_check check (codice ~ '^[A-Za-z0-9]{4}$'),
+  constraint materiali_codice_numerico_check check (codice_numerico ~ '^[0-9]{4}$')
 );
 
 -- ---------- ARTICOLI PF ----------
 create table if not exists articoli_pf (
   id          uuid primary key default gen_random_uuid(),
-  codice      text unique not null,          -- es. SC-001
+  codice      text unique not null,          -- codice alfanumerico di 4 caratteri
   descrizione text not null,
   gtin14      text,
   stato       text not null default 'Attivo' check (stato in ('Attivo','Bozza')),
-  creato_il   timestamptz not null default now()
+  creato_il   timestamptz not null default now(),
+  codice_numerico text not null,
+  constraint articoli_pf_codice_check check (codice ~ '^[A-Za-z0-9]{4}$'),
+  constraint articoli_pf_codice_numerico_check check (codice_numerico ~ '^[0-9]{4}$')
 );
 
 -- ---------- LOTTI MP (ricevimenti materie prime) ----------
