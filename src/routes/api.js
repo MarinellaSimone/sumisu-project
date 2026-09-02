@@ -196,10 +196,10 @@ router.get('/lotti-sm', wrap(async (req, res) => {
 router.post('/lotti-sm', wrap(async (req, res) => {
   const { tipo_semilavorato, lavorazione, fornitore_sm_id, ddt_numero, ddt_data,
           quantita, unita_misura, data_lavorazione, note, consumi } = req.body;
-  await verificaDisponibilita('lotti_mp', consumi, 'lotto_mp_id');
+  await verificaDisponibilita('lotti_mp', consumi, 'lotto_mp_id'); //TODO: verificare perche ci sono gli id "mp" e non "sm" nei consumi
 
   const { data: materiale } = await supabase.from('materiali').select('codice').eq('id', tipo_semilavorato).maybeSingle();
-  const sigla = (materiale?.codice || 'SM').replace(/[^A-Za-z]/g, '').slice(0, 3);
+  const sigla = (materiale?.codice || 'SM').replace(/[^A-Za-z]/g, '').slice(0, 4);
   const codice_lotto = await generaLottoSM(sigla, data_lavorazione);
 
   const { data: lotto, error } = await supabase.from('lotti_sm').insert({
