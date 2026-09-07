@@ -3,7 +3,7 @@ function requireAuth(req, res, next) {
   if (req.session && req.session.user) return next();
   // richiesta API -> 401 JSON, altrimenti redirect al login
   if (req.originalUrl.startsWith('/api/')) {
-    return res.status(401).json({ error: 'Non autenticato' });
+    return res.status(401).json({ error: 'Non autenticato' ,session:JSON.stringify(req.session)});
   }
   return res.redirect('/login');
 }
