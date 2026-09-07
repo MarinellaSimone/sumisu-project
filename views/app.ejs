@@ -97,6 +97,12 @@
               </div>
               <div class="fr"><label class="fl">N° pedane</label><input class="fi" type="number" id="mp-ped" value="1"></div>
               <div class="fr"><label class="fl">Note</label><textarea class="fi" id="mp-note" placeholder="es. 2 pedane danneggiate…"></textarea></div>
+              <div class="fr"><label class="fl">Informazioni etichetta</label>
+                <div class="food-contact-symbol-options">
+                  <label class="food-contact-symbol-option"><input type="checkbox" id="mp-food-contact-symbol"><img src="/barcode-assets/food-contact-symbol.png" alt="Simbolo contatto con alimenti" title="Simbolo contatto con alimenti"></label>
+                </div>
+                <label class="food-contact-text-option"><input type="checkbox" id="mp-food-contact-text"> Idoneo al contatto con alimenti DM 21/03/70 e SMI</label>
+              </div>
               <div class="btn-row">
                 <button class="btn btn-primary" onclick="salvaMP(this)"><i class="ti ti-check"></i>Stampa Etichetta</button>
               </div>
@@ -154,6 +160,12 @@
                 </div>
               </div>
               <div class="fr"><label class="fl">Note</label><textarea class="fi" id="sm-note"></textarea></div>
+              <div class="fr"><label class="fl">Informazioni etichetta</label>
+                <div class="food-contact-symbol-options">
+                  <label class="food-contact-symbol-option"><input type="checkbox" id="mp-food-contact-symbol"><img src="/barcode-assets/food-contact-symbol.png" alt="Simbolo contatto con alimenti" title="Simbolo contatto con alimenti"></label>
+                </div>
+                <label class="food-contact-text-option"><input type="checkbox" id="sm-food-contact-text"> Idoneo al contatto con alimenti DM 21/03/70 e SMI</label>
+              </div>
               <div class="btn-row"><button class="btn btn-primary" onclick="salvaSM(this)"><i class="ti ti-check"></i>Conferma SM</button></div>
             </div>
             <div class="card">
@@ -214,6 +226,15 @@
                 <div style="display:flex;justify-content:flex-start;gap:8px;margin-top:8px;">
                   <button class="btn btn-primary" style="background:var(--violal);border-color:#c5bfee;color:var(--viola);" onclick="addPFConsumoSMByScan()"><i class="ti ti-scan"></i>Recupera lotto</button>
                 </div>
+              </div>
+              <div class="fr"><label class="fl">Informazioni etichetta</label>
+                <div class="food-contact-symbol-options">
+                  <label class="food-contact-symbol-option"><input type="checkbox" id="pf-food-contact-symbol"><img src="/barcode-assets/food-contact-symbol.png" alt="Simbolo contatto con alimenti" title="Simbolo contatto con alimenti"></label>
+                  <label class="food-contact-symbol-option"><input type="checkbox" id="pf-food-contact-21-pap"><img src="/barcode-assets/21-pap.png" alt="Simbolo PAP 21" title="Simbolo PAP 21"></label>
+                  <label class="food-contact-symbol-option"><input type="checkbox" id="pf-food-contact-4-ldpe"><img src="/barcode-assets/4-ldpe.png" alt="Simbolo LDPE 4" title="Simbolo LDPE 4"></label>
+                </div>
+                <label class="food-contact-text-option"><input type="checkbox" id="pf-food-contact-text"> Idoneo al contatto con alimenti DM 21/03/70 e SMI</label>
+                <label class="food-contact-text-option"><input type="checkbox" id="pf-food-contact-municipality"> Verifica le disposizioni del tuo comune</label>
               </div>
               <div class="btn-row"><button class="btn btn-amber" onclick="salvaPF(this)"><i class="ti ti-player-play"></i>Avvia produzione</button></div>
             </div>

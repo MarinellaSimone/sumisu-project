@@ -1,17 +1,22 @@
 <div class="barcode-mp">
 
     <h1><%= company %></h1>
-
     <div class="address-mp">Via Grotte 185</div>
-
+    <div class="label-description"><%= descrizione %></div>
     <img id="barcode" src="<%= image %>" />
-
     <div class="barcode-text"><%=barcodeText %></div>
 
     <div class="footer-mp">
         <span>LOTTO: <%= lot %></span>
         <span>Q.ty: <%= quantity %> <%= unit %></span>
     </div>
+    <div class="food-contact-images">
+        <% if (foodContactSymbol) { %><img class="food-contact-symbol" src="/barcode-assets/food-contact-symbol.png" alt="Idoneo al contatto con alimenti"><% } %>
+        <% if (foodContact21Pap) { %><img class="food-contact-symbol" src="/barcode-assets/21-pap.png" alt="Simbolo PAP 21"><% } %>
+        <% if (foodContact4Ldpe) { %><img class="food-contact-symbol" src="/barcode-assets/4-ldpe.png" alt="Simbolo LDPE 4"><% } %>
+    </div>
+    <% if (foodContactText) { %><div class="food-contact-text">Idoneo al contatto con alimenti DM 21/03/70 e SMI</div><% } %>
+    <% if (foodContactMunicipality) { %><div class="food-contact-text">Verifica le disposizioni del tuo comune</div><% } %>
 
 </div>
 
