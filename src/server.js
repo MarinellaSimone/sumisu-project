@@ -1,6 +1,8 @@
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+const { Pool } = require('pg');
 require('dotenv').config();
 
 const { requireAuth, requireAdmin, injectUser } = require('./middleware/auth');
@@ -10,6 +12,12 @@ const barcodeRouter = require("./routes/barcode");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const pool = new Pool({
+  connectionString: "postgresql://postgres.cgkgkfcsorvelzhspgbe:sumisumarinella@aws-0-eu-central-1.pooler.supabase.com:5432/postgres", //process.env.DATABASE_URL
+  ssl: {
+    rejectUnauthorized: false,  
+  },
+});
 
 // ---- View engine ----
 app.set('view engine', 'ejs');
@@ -25,16 +33,34 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // ---- Sessioni ----
 // Store in memoria: adatto a un singolo processo / demo.
 // In produzione usa connect-pg-simple verso il Postgres di Supabase.
+// app.use(session({
+//   name: 'trackpack.sid',
+//   secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+//   resave: false,
+//   saveUninitialized: false,
+//   cookie: {
+//     httpOnly: true,
+//     maxAge: 1000 * 60 * 60 * 8, // 8 ore
+//     sameSite: 'lax',
+//     secure: false, // metti true dietro HTTPS
+//   },
+// }));
+
 app.use(session({
+  store: new pgSession({
+    pool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+  }),
   name: 'trackpack.sid',
-  secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 8, // 8 ore
+    maxAge: 1000 * 60 * 60 * 8,
     sameSite: 'lax',
-    secure: false, // metti true dietro HTTPS
+    secure: false, //process.env.NODE_ENV === 'production'
   },
 }));
 
