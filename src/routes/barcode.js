@@ -19,7 +19,7 @@ async function getCodiceNumerico(type, codice) {
 
     const { data, error } = await supabase
         .from(table)
-        .select("codice_numerico")
+        .select("codice_numerico, descrizione")
         .eq("codice", codice)
         .maybeSingle();
 
@@ -33,7 +33,7 @@ async function getCodiceNumerico(type, codice) {
         );
     }
 
-    return data.codice_numerico;
+    return data;
 }
 
 
@@ -45,6 +45,11 @@ router.get("/generate", async (req, res) => {
             quantity,
             unit,
             lot,
+            foodContactSymbol = "false",
+            foodContact21Pap = "false",
+            foodContact4Ldpe = "false",
+            foodContactText = "false",
+            foodContactMunicipality = "false",
         } = req.query;
 
         if (!date || !quantity) {
@@ -73,14 +78,14 @@ router.get("/generate", async (req, res) => {
             });
         }
         const codice = lot.split("-")[2];
-        const codiceNumerico = await getCodiceNumerico(type, codice);
+        const codiceMateriale = await getCodiceNumerico(type, codice);
         
         // Create barcode data
         const barcode = BarcodeCodec.create({
             expiryDate: date,
             quantity: Number(quantity),
             codTipologia: tipologia.codice,
-            codNumerico: codiceNumerico,
+            codNumerico: codiceMateriale.codice_numerico,
             codIncrementale: lot.split("-")[3]
         });
 
@@ -92,6 +97,7 @@ router.get("/generate", async (req, res) => {
         const label = {
             type,
             company: "DULCIBANA s.r.l.",
+            descrizione: codiceMateriale.descrizione,
             barcodeValue: barcode.value,
             barcodeText: barcode.human,
             lot,
@@ -99,6 +105,11 @@ router.get("/generate", async (req, res) => {
             date: BarcodeCodec.formatDate(date),
             image,
             unit:unit
+            ,foodContactSymbol: foodContactSymbol === "true"
+            ,foodContact21Pap: foodContact21Pap === "true"
+            ,foodContact4Ldpe: foodContact4Ldpe === "true"
+            ,foodContactText: foodContactText === "true"
+            ,foodContactMunicipality: foodContactMunicipality === "true"
         };
 
         const data = await new LabelRenderer().render(

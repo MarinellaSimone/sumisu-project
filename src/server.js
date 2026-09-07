@@ -21,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ---- Static ----
 app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use('/barcode-assets', express.static(path.join(__dirname, '..', 'views', 'barcodes')));
 
 // ---- Sessioni ----
 // Store in memoria: adatto a un singolo processo / demo.

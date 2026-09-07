@@ -138,8 +138,20 @@ function salvaLabel(selector = "#label-mp") {
     });
 }
 
-function generateEtichetta(r,date,selector = "#label-mp",type = "MP") {
-    fetch(`/barcode/generate?date=${date}&quantity=${r.quantita}&unit=${r.unita_misura }&lot=${r.codice_lotto}&type=${type}`)
+function generateEtichetta(r, date, selector = "#label-mp", type = "MP", options = {}) {
+  const params = new URLSearchParams({
+    date,
+    quantity: r.quantita,
+    unit: r.unita_misura,
+    lot: r.codice_lotto,
+    type,
+    foodContactSymbol: options.foodContactSymbol ? 'true' : 'false',
+    foodContact21Pap: options.foodContact21Pap ? 'true' : 'false',
+    foodContact4Ldpe: options.foodContact4Ldpe ? 'true' : 'false',
+    foodContactText: options.foodContactText ? 'true' : 'false',
+    foodContactMunicipality: options.foodContactMunicipality ? 'true' : 'false',
+  });
+  fetch(`/barcode/generate?${params}`)
         .then(res => res.json())
         .then(data => {
             const labelEl = document.querySelector(selector);
@@ -184,7 +196,10 @@ async function salvaMP(btn) {
     showToast(`Ricevimento registrato! Lotto ${r.codice_lotto}`);
     ['mp-ddt', 'mp-qty', 'mp-note'].forEach((id) => (document.getElementById(id).value = ''));      
     loadMP();
-    generateEtichetta(r,r.ddt_data,"#label-mp","MP");
+    generateEtichetta(r, r.ddt_data, '#label-mp', 'MP', {
+      foodContactSymbol: document.getElementById('mp-food-contact-symbol').checked,
+      foodContactText: document.getElementById('mp-food-contact-text').checked,
+    });
   } catch (e) { showToast(e.message, 'err'); }
   finally { loading(false); }
 }
@@ -295,7 +310,10 @@ async function salvaSM(btn) {
       quantita: qty, unita_misura: val('sm-um'), data_lavorazione: val('sm-data'), note: val('sm-note'),
       consumi: smConsumi.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
     }});
-    generateEtichetta(r,r.data_lavorazione,"#label-sm","SM");
+    generateEtichetta(r, r.data_lavorazione, '#label-sm', 'SM', {
+      foodContactSymbol: document.getElementById('sm-food-contact-symbol').checked,
+      foodContactText: document.getElementById('sm-food-contact-text').checked,
+    });
     showToast(`Lavorazione SM registrata! Lotto ${r.codice_lotto}`);
     ['sm-note'].forEach((id) => (document.getElementById(id).value = ''));
     document.getElementById('sm-qty').value = 0;
@@ -405,7 +423,13 @@ async function salvaPF(btn) {
       consumi_mp: pfConsumiMP.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
       consumi_sm: pfConsumiSM.map((c) => ({ lotto_sm_id: c.lotto_sm_id, quantita: c.quantita, unita_misura: c.um })),
     }});
-    generateEtichetta(r,r.data_produzione,"#label-pf","PF");
+    generateEtichetta(r, r.data_produzione, '#label-pf', 'PF', {
+      foodContactSymbol: document.getElementById('pf-food-contact-symbol').checked,
+      foodContact21Pap: document.getElementById('pf-food-contact-21-pap').checked,
+      foodContact4Ldpe: document.getElementById('pf-food-contact-4-ldpe').checked,
+      foodContactText: document.getElementById('pf-food-contact-text').checked,
+      foodContactMunicipality: document.getElementById('pf-food-contact-municipality').checked,
+    });
     showToast(`Ordine PF avviato! Lotto ${r.codice_lotto}`);
     document.getElementById('pf-qty').value = 0;
     loadPF();
