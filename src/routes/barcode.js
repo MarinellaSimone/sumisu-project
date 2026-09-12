@@ -46,7 +46,10 @@ router.get("/generate", async (req, res) => {
             unit,
             lot,
             foodContactSymbol = "false",
+            foodContact20Pap = "false",
             foodContact21Pap = "false",
+            foodContact22Pap = "false",
+            foodContact81 = "false",
             foodContact4Ldpe = "false",
             foodContactText = "false",
             foodContactMunicipality = "false",
@@ -106,7 +109,10 @@ router.get("/generate", async (req, res) => {
             image,
             unit:unit
             ,foodContactSymbol: foodContactSymbol === "true"
+            ,foodContact20Pap: foodContact20Pap === "true"
             ,foodContact21Pap: foodContact21Pap === "true"
+            ,foodContact22Pap: foodContact22Pap === "true"
+            ,foodContact81: foodContact81 === "true"
             ,foodContact4Ldpe: foodContact4Ldpe === "true"
             ,foodContactText: foodContactText === "true"
             ,foodContactMunicipality: foodContactMunicipality === "true"

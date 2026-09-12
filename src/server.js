@@ -12,8 +12,9 @@ const barcodeRouter = require("./routes/barcode");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const connString = process.env.DATABASE_URL
 const pool = new Pool({
-  connectionString: "postgresql://postgres.cgkgkfcsorvelzhspgbe:sumisumarinella@aws-0-eu-central-1.pooler.supabase.com:5432/postgres", //process.env.DATABASE_URL
+  connectionString: connString, 
   ssl: {
     rejectUnauthorized: false,  
   },
@@ -61,7 +62,7 @@ app.use(session({
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 8,
     sameSite: 'lax',
-    secure: false, //process.env.NODE_ENV === 'production'
+    secure: process.env.NODE_ENV === 'production',
   },
 }));
 

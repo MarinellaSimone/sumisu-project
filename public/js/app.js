@@ -146,7 +146,10 @@ function generateEtichetta(r, date, selector = "#label-mp", type = "MP", options
     lot: r.codice_lotto,
     type,
     foodContactSymbol: options.foodContactSymbol ? 'true' : 'false',
+    foodContact20Pap: options.foodContact20Pap ? 'true' : 'false',
     foodContact21Pap: options.foodContact21Pap ? 'true' : 'false',
+    foodContact22Pap: options.foodContact22Pap ? 'true' : 'false',
+    foodContact81: options.foodContact81 ? 'true' : 'false',
     foodContact4Ldpe: options.foodContact4Ldpe ? 'true' : 'false',
     foodContactText: options.foodContactText ? 'true' : 'false',
     foodContactMunicipality: options.foodContactMunicipality ? 'true' : 'false',
@@ -425,7 +428,10 @@ async function salvaPF(btn) {
     }});
     generateEtichetta(r, r.data_produzione, '#label-pf', 'PF', {
       foodContactSymbol: document.getElementById('pf-food-contact-symbol').checked,
+      foodContact20Pap: document.getElementById('pf-food-contact-20-pap').checked,
       foodContact21Pap: document.getElementById('pf-food-contact-21-pap').checked,
+      foodContact22Pap: document.getElementById('pf-food-contact-22-pap').checked,
+      foodContact81: document.getElementById('pf-food-contact-81').checked,
       foodContact4Ldpe: document.getElementById('pf-food-contact-4-ldpe').checked,
       foodContactText: document.getElementById('pf-food-contact-text').checked,
       foodContactMunicipality: document.getElementById('pf-food-contact-municipality').checked,
