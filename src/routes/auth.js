@@ -17,7 +17,7 @@ router.post('/login', async (req, res) => {
     .eq('username', username.trim())
     .maybeSingle();
 
-  if (error) return res.status(500).json({ error: 'Errore server' });
+  if (error) return res.status(500).json({ error: 'Errore server' ,msg: error.message});
   if (!user || !user.attivo) {
     return res.status(401).json({ error: 'Username o password errati. Riprova.' });
   }
