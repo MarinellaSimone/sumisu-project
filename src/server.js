@@ -13,6 +13,7 @@ const barcodeRouter = require("./routes/barcode");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const connString = process.env.DATABASE_URL
+const isSecure = false //process.env.NODE_ENV === 'production';
 const pool = new Pool({
   connectionString: connString, 
   ssl: {
@@ -62,7 +63,7 @@ app.use(session({
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 8,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
   },
 }));
 
