@@ -94,7 +94,7 @@ I permessi sono applicati sia lato UI (voci di menu nascoste) sia lato server
 
 ## Moduli funzionali
 1. **Dashboard** — KPI live, lotti sotto soglia, ultimi movimenti, ordini PF attivi
-2. **Ricevimento MP** — registra materie prime, genera codice `LT-AAAAMMGG-MAT-NNN`
+2. **Ricevimento MP** — registra materie prime, genera codice `MP-AAAAMMGG-MAT-NNN`
 3. **Lavorazione SM** — interna/esterna, consuma lotti MP, genera `SM-AAAAMMGG-TIPO-NNN`
 4. **Produzione PF** — collega lotti MP e SM, genera `PF-AAAAMMGG-ART-NNN`
 5. **Magazzino** — giacenze correnti MP / SM / PF

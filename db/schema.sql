@@ -76,7 +76,7 @@ create table if not exists articoli_pf (
 -- ---------- LOTTI MP (ricevimenti materie prime) ----------
 create table if not exists lotti_mp (
   id            uuid primary key default gen_random_uuid(),
-  codice_lotto  text unique not null,        -- LT-AAAAMMGG-MAT-NNN
+  codice_lotto  text unique not null,        -- MP-AAAAMMGG-MAT-NNN
   fornitore_id  uuid references fornitori(id),
   materiale_id  uuid references materiali(id),
   ddt_numero    text,

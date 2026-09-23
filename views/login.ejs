@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TrackPack · Accedi</title>
+<title>Sumisù · Accedi</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
 <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -34,10 +34,6 @@
         <i class="ti ti-alert-triangle"></i><span id="login-err-msg">Username o password errati. Riprova.</span>
       </div>
       <button class="submit-btn" onclick="doLogin()"><i class="ti ti-login"></i>Accedi</button>
-      <div class="hint">
-        <i class="ti ti-info-circle"></i>
-        <div><strong>Demo:</strong> admin / admin2026 &nbsp;·&nbsp; operatore1 / pass123</div>
-      </div>
     </div>
     <div class="login-footer">TrackPack · Sumisu S.r.l. · 2026</div>
   </div>
@@ -71,7 +67,7 @@ async function doLogin() {
 
     window.location.href = '/app';
   } catch (e) {
-    document.getElementById('login-err-msg').textContent = 'Errore di connessione';
+    document.getElementById('login-err-msg').textContent = 'Errore di connessione' + `(${e.message})`;
     err.style.display = 'flex';
   }
 }

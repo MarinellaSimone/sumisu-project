@@ -17,11 +17,11 @@ async function prossimoProgressivo(tabella, prefissoLike) {
   return (data ? data.length : 0) + 1;
 }
 
-// LT-AAAAMMGG-MAT-NNN
+// MP-AAAAMMGG-MAT-NNN
 async function generaLottoMP(codiceMateriale, data) {
   const dt = oggiCompatto(data ? new Date(data) : new Date());
   const mat = (codiceMateriale || 'GEN').toUpperCase();
-  const prefix = `LT-${dt}-${mat}-`;
+  const prefix = `MP-${dt}-${mat}-`;
   const n = await prossimoProgressivo('lotti_mp', prefix);
   return `${prefix}${String(n).padStart(3, '0')}`;
 }

@@ -99,7 +99,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 }
 
 .label-modal .close-label,
-.label-modal .save-label {
+.label-modal .save-label ,
+.label-modal .print-label 
+{
     position: absolute;
     top: 8px;
     width: 28px;
@@ -122,12 +124,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     right: 8px;
 }
 
+
+
 .label-modal .save-label {
     right: 44px;
 }
 
+.label-modal .print-label {
+    right: 80px;
+}
+
+
 .label-modal .close-label:hover,
-.label-modal .save-label:hover {
+.label-modal .save-label:hover,
+.label-modal .print-label:hover {
     background: #e0e0e0;
     color: #000;
 }

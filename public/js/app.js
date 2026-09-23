@@ -138,6 +138,71 @@ function salvaLabel(selector = "#label-mp") {
     });
 }
 
+function stampaLabel(selector = "#label-mp") {
+    const labelEl = document.querySelector(selector);
+    const target = labelEl?.querySelector('.barcode-mp') || labelEl;
+    if (!target) return;
+
+    html2canvas(target, {
+        backgroundColor: "#ffffff",
+        scale: 3,
+        ignoreElements: (el) =>
+            el.classList.contains("close-label") ||
+            el.classList.contains("save-label") ||
+            el.classList.contains("print-label")
+    }).then(canvas => {
+
+        const printWindow = window.open('', '_blank');
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Stampa etichetta</title>
+                <style>
+                    @page {
+                        margin: 0;
+                    }
+
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                        width: 100%;
+                        height: 100%;
+                    }
+
+                    body {
+                        display: flex;
+                        justify-content: center;
+                        align-items: flex-start;
+                    }
+
+                    img {
+                        display: block;
+                        max-width: 100%;
+                        height: auto;
+                    }
+                </style>
+            </head>
+            <body>
+                <img id="label-image">
+            </body>
+            </html>
+        `);
+
+        printWindow.document.close();
+
+        const img = printWindow.document.getElementById("label-image");
+        img.src = canvas.toDataURL("image/png");
+
+        img.onload = () => {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        };
+    });
+}
+
 function generateEtichetta(r, date, selector = "#label-mp", type = "MP", options = {}) {
   const params = new URLSearchParams({
     date,
@@ -175,6 +240,14 @@ function generateEtichetta(r, date, selector = "#label-mp", type = "MP", options
                 closeBtn.onclick = () => chiudiLabel(selector);
 
                 labelBox.append(saveBtn, closeBtn);
+
+                const printBtn = document.createElement('button');
+                printBtn.className = 'print-label';
+                printBtn.setAttribute('aria-label', 'Stampa');
+                printBtn.innerHTML = '<i class="ti ti-printer"></i>';
+                printBtn.onclick = () => stampaLabel(selector);
+
+                labelBox.append(saveBtn, printBtn, closeBtn);
             }
 
             labelEl.classList.add("show");
@@ -274,7 +347,7 @@ function addSMConsumoByScan() {
   const targetDate = parsed.productionDate;
   const targetQty = parsed.quantity || 0;
   const lotto = (window.__mpLotti || []).find((l) => {
-    const lotDate = String(l.codice_lotto || '').match(/LT-(\d{8})-/)?.[1];
+    const lotDate = String(l.codice_lotto || '').match(/MP-(\d{8})-/)?.[1];
     const ddtDate = l.ddt_data ? new Date(l.ddt_data).toISOString().slice(0, 10).replace(/-/g, '') : '';
     const qtyOk = !targetQty || Number(l.quantita) === targetQty || Number(l.giacenza) === targetQty;
     return qtyOk && (lotDate === targetDate || ddtDate === targetDate);

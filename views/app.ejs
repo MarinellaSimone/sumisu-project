@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TrackPack</title>
+<title>Sumisù</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -93,7 +93,7 @@
               <div class="g3">
                 <div class="fr"><label class="fl">N° DDT / Fattura <span class="req">*</span></label><input class="fi" type="text" id="mp-ddt" placeholder="es. 2026/0445"></div>
                 <div class="fr"><label class="fl">Data DDT <span class="req">*</span></label><input class="fi" type="date" id="mp-data"></div>
-                <div class="fr"><label class="fl">Quantità <span class="req">*</span></label><div style="display:flex;gap:6px;"><input class="fi" type="number" id="mp-qty" placeholder="0" style="flex:1;"><select class="fi" id="mp-um" style="width:70px;padding:11px 6px;"><option>kg</option><option>mq</option><option>pz</option><option>mt</option></select></div></div>
+                <div class="fr"><label class="fl">Quantità <span class="req">*</span></label><div style="display:flex;gap:6px;"><input class="fi" type="number" id="mp-qty" placeholder="0" style="flex:1;"><select class="fi" id="mp-um" style="width:70px;padding:11px 6px;"><option>kg</option><option>mq</option><option>pz</option><option>fg</option></select></div></div>
               </div>
               <div class="fr"><label class="fl">N° pedane</label><input class="fi" type="number" id="mp-ped" value="1"></div>
               <div class="fr"><label class="fl">Note</label><textarea class="fi" id="mp-note" placeholder="es. 2 pedane danneggiate…"></textarea></div>
@@ -104,7 +104,7 @@
                 <label class="food-contact-text-option"><input type="checkbox" id="mp-food-contact-text"> Idoneo al contatto con alimenti DM 21/03/70 e SMI</label>
               </div>
               <div class="btn-row">
-                <button class="btn btn-primary" onclick="salvaMP(this)"><i class="ti ti-check"></i>Stampa Etichetta</button>
+                <button class="btn btn-primary" onclick="salvaMP(this)"><i class="ti ti-check"></i>CONFERMA MP</button>
               </div>
             </div>
             <div class="card">
@@ -135,7 +135,7 @@
               </div>
               <div class="fr"><label class="fl">Tipo semilavorato <span class="req">*</span></label><select class="fi" id="sm-tipo"></select></div>
               <div class="g2">
-                <div class="fr"><label class="fl">Quantità <span class="req">*</span></label><div style="display:flex;gap:6px;"><input class="fi" type="number" id="sm-qty" value="0" style="flex:1;"><select class="fi" id="sm-um" style="width:70px;padding:11px 6px;"><option>kg</option><option>mq</option><option>pz</option><option>mt</option></select></div></div>
+                <div class="fr"><label class="fl">Quantità <span class="req">*</span></label><div style="display:flex;gap:6px;"><input class="fi" type="number" id="sm-qty" value="0" style="flex:1;"><select class="fi" id="sm-um" style="width:70px;padding:11px 6px;"><option>kg</option><option>mq</option><option>pz</option><option>fg</option></select></div></div>
                 <div class="fr"><label class="fl">Data lavorazione</label><input class="fi" type="date" id="sm-data"></div>
               </div>
               <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Lotti MP utilizzati</div>
@@ -162,7 +162,7 @@
               <div class="fr"><label class="fl">Note</label><textarea class="fi" id="sm-note"></textarea></div>
               <div class="fr"><label class="fl">Informazioni etichetta</label>
                 <div class="food-contact-symbol-options">
-                  <label class="food-contact-symbol-option"><input type="checkbox" id="mp-food-contact-symbol"><img src="/barcode-assets/food-contact-symbol.png" alt="Simbolo contatto con alimenti" title="Simbolo contatto con alimenti"></label>
+                  <label class="food-contact-symbol-option"><input type="checkbox" id="sm-food-contact-symbol"><img src="/barcode-assets/food-contact-symbol.png" alt="Simbolo contatto con alimenti" title="Simbolo contatto con alimenti"></label>
                 </div>
                 <label class="food-contact-text-option"><input type="checkbox" id="sm-food-contact-text"> Idoneo al contatto con alimenti DM 21/03/70 e SMI</label>
               </div>
@@ -182,7 +182,7 @@
             <div class="card">
               <div class="card-title"><i class="ti ti-building-factory-2"></i>Nuovo ordine PF</div>
               <div class="fr"><label class="fl">Articolo da produrre <span class="req">*</span></label><select class="fi" id="pf-art"></select></div>
-              <div class="fr"><label class="fl">Quantità <span class="req">*</span></label><div style="display:flex;gap:6px;"><input class="fi" type="number" id="pf-qty" value="0" style="flex:1;"><select class="fi" id="pf-um" style="width:70px;padding:11px 6px;"><option>kg</option><option>mq</option><option>pz</option><option>mt</option></select></div></div>
+              <div class="fr"><label class="fl">Quantità <span class="req">*</span></label><div style="display:flex;gap:6px;"><input class="fi" type="number" id="pf-qty" value="0" style="flex:1;"><select class="fi" id="pf-um" style="width:70px;padding:11px 6px;"><option>kg</option><option>mq</option><option>pz</option><option>fg</option></select></div></div>
               <div class="fr"><label class="fl">Data produzione</label><input class="fi" type="date" id="pf-data"></div>
               <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Lotti MP collegati</div>
               <div id="pf-mp-add-tabs" class="tabs" style="margin-bottom:10px;">
@@ -239,7 +239,7 @@
                 <label class="food-contact-text-option"><input type="checkbox" id="pf-food-contact-text"> Idoneo al contatto con alimenti DM 21/03/70 e SMI</label>
                 <label class="food-contact-text-option"><input type="checkbox" id="pf-food-contact-municipality"> Verifica le disposizioni del tuo comune</label>
               </div>
-              <div class="btn-row"><button class="btn btn-amber" onclick="salvaPF(this)"><i class="ti ti-player-play"></i>Avvia produzione</button></div>
+              <div class="btn-row"><button class="btn btn-amber" onclick="salvaPF(this)"><i class="ti ti-player-play"></i>CONFERMA PF</button></div>
             </div>
             <div class="card">
               <div class="card-title"><i class="ti ti-history"></i>Ordini attivi</div>
@@ -348,7 +348,7 @@
               <div class="fr"><label class="fl">Descrizione <span class="req">*</span></label><input class="fi" id="am-desc"></div>
               <div class="g2">
                 <div class="fr"><label class="fl">Quantità minima</label><input class="fi" type="number" id="am-soglia" value="0"></div>
-                <div class="fr"><label class="fl">Unità misura</label><select class="fi" id="am-um"><option>kg</option><option>pz</option><option>mq</option><option>mt</option></select></div>
+                <div class="fr"><label class="fl">Unità misura</label><select class="fi" id="am-um"><option>kg</option><option>pz</option><option>mq</option><option>fg</option></select></div>
               </div>
               <div class="btn-row"><button class="btn btn-primary" onclick="addMateriale(this)"><i class="ti ti-plus"></i>Aggiungi</button></div>
             </div>
@@ -379,8 +379,8 @@
         <div class="page" id="page-traccia">
           <div class="card" style="max-width:620px;">
             <div class="card-title"><i class="ti ti-git-branch"></i>Ricerca rintracciabilità</div>
-            <p style="font-size:13px;color:var(--grigio);margin-bottom:14px;">Inserisci un codice lotto (LT-, SM- o PF-) per ricostruire la catena completa.</p>
-            <div class="fr"><label class="fl">Codice lotto</label><input class="fi" id="trace-in" placeholder="es. LT-20260707-CAR-001" style="font-family:'SF Mono',monospace;" onkeydown="if(event.key==='Enter')doTrace()"></div>
+            <p style="font-size:13px;color:var(--grigio);margin-bottom:14px;">Inserisci un codice lotto (MP-, SM- o PF-) per ricostruire la catena completa.</p>
+            <div class="fr"><label class="fl">Codice lotto</label><input class="fi" id="trace-in" placeholder="es. MP-20260707-CAR-001" style="font-family:'SF Mono',monospace;" onkeydown="if(event.key==='Enter')doTrace()"></div>
             <div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="doTrace()"><i class="ti ti-search"></i>Traccia catena completa</button></div>
           </div>
           <div id="trace-res" style="display:none;margin-top:16px;">

@@ -77,9 +77,9 @@ async function seedLotti() {
   const aById = (c) => (art || []).find(a => a.codice === c)?.id;
 
   const mpRows = [
-    { codice_lotto: 'LT-20260707-CART-001', fornitore_id: fById('Cartiera'), materiale_id: mById('CART'), ddt_numero: '2026/0445', ddt_data: '2026-07-07', quantita: 400, giacenza: 400, unita_misura: 'kg', n_pedane: 4, stato: 'Ok' },
-    { codice_lotto: 'LT-20260706-INCH-002', fornitore_id: fById('ColorPrint'), materiale_id: mById('INCH'), ddt_numero: '2026/0432', ddt_data: '2026-07-06', quantita: 33, giacenza: 33, unita_misura: 'kg', n_pedane: 1, stato: 'Ok' },
-    { codice_lotto: 'LT-20260705-COLL-001', fornitore_id: fById('AdhesivePro'), materiale_id: mById('COLL'), ddt_numero: '2026/0410', ddt_data: '2026-07-05', quantita: 18, giacenza: 18, unita_misura: 'kg', n_pedane: 1, stato: 'Soglia' },
+    { codice_lotto: 'MP-20260707-CART-001', fornitore_id: fById('Cartiera'), materiale_id: mById('CART'), ddt_numero: '2026/0445', ddt_data: '2026-07-07', quantita: 400, giacenza: 400, unita_misura: 'kg', n_pedane: 4, stato: 'Ok' },
+    { codice_lotto: 'MP-20260706-INCH-002', fornitore_id: fById('ColorPrint'), materiale_id: mById('INCH'), ddt_numero: '2026/0432', ddt_data: '2026-07-06', quantita: 33, giacenza: 33, unita_misura: 'kg', n_pedane: 1, stato: 'Ok' },
+    { codice_lotto: 'MP-20260705-COLL-001', fornitore_id: fById('AdhesivePro'), materiale_id: mById('COLL'), ddt_numero: '2026/0410', ddt_data: '2026-07-05', quantita: 18, giacenza: 18, unita_misura: 'kg', n_pedane: 1, stato: 'Soglia' },
   ];
   for (const r of mpRows) {
     const { error } = await supabase.from('lotti_mp').upsert(r, { onConflict: 'codice_lotto' });
