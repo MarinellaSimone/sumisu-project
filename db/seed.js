@@ -56,9 +56,9 @@ async function upsertMateriali() {
 
 async function upsertArticoli() {
   const rows = [
-    { codice: 'SC01', codice_numerico: '0001', descrizione: 'Scatola 300×200×150mm', gtin14: '09788423400123', stato: 'Attivo' },
-    { codice: 'SC02', codice_numerico: '0002', descrizione: 'Scatola 400×300×200mm', gtin14: '09788423400130', stato: 'Attivo' },
-    { codice: 'IM10', codice_numerico: '0003', descrizione: 'Imb. food grade 1L', gtin14: '09788423400147', stato: 'Attivo' },
+    { codice: 'SC01', codice_numerico: '0001', descrizione: 'Scatola 300×200×150mm', stato: 'Attivo' },
+    { codice: 'SC02', codice_numerico: '0002', descrizione: 'Scatola 400×300×200mm', stato: 'Attivo' },
+    { codice: 'IM10', codice_numerico: '0003', descrizione: 'Imb. food grade 1L', stato: 'Attivo' },
   ];
   for (const r of rows) {
     const { error } = await supabase.from('articoli_pf').upsert(r, { onConflict: 'codice' });
