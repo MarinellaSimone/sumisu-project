@@ -38,7 +38,7 @@
           <div class="nav-section">Gestione</div>
           <a class="nav-item" onclick="goPage('sped','Spedizioni PF')" id="ni-sped"><i class="ti ti-truck"></i><span>Spedizioni PF</span></a>
           <a class="nav-item" onclick="goPage('ana','Anagrafiche')" id="ni-ana"><i class="ti ti-address-book"></i><span>Anagrafiche</span></a>
-          <a class="nav-item" onclick="goPage('traccia','Rintracciabilità')" id="ni-traccia"><i class="ti ti-git-branch"></i><span>Rintracciabilità</span></a>
+          <a class="nav-item" onclick="goPage('traccia','Tracciabilità')" id="ni-traccia"><i class="ti ti-git-branch"></i><span>Tracciabilità</span></a>
           <a class="nav-item" onclick="goPage('utenti','Gestione utenti')" id="ni-utenti"><i class="ti ti-users"></i><span>Gestione utenti</span></a>
         </div>
       </nav>
@@ -258,7 +258,11 @@
               <button class="tab-btn" onclick="magTab('sm',this)">SM</button>
               <button class="tab-btn" onclick="magTab('pf',this)">PF</button>
             </div>
-            <div class="tw"><table><thead><tr><th>Lotto</th><th>Descrizione</th><th>Giacenza</th><th>Stato</th></tr></thead><tbody id="mag-body"></tbody></table></div>
+            <div class="fr" style="margin:12px 0 14px;max-width:440px;">
+              <label class="fl">Ricerca lotto</label>
+              <input class="fi" id="mag-search" placeholder="Cerca per codice, descrizione o stato…" oninput="applyMagFilter()">
+            </div>
+            <div class="tw"><table><thead><tr><th>Lotto</th><th>Descrizione</th><th>Giacenza</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="mag-body"></tbody></table></div>
           </div>
         </div>
 
@@ -375,10 +379,10 @@
           </div>
         </div>
 
-        <!-- RINTRACCIABILITÀ -->
+        <!-- TRACCIABILITÀ -->
         <div class="page" id="page-traccia">
           <div class="card" style="max-width:620px;">
-            <div class="card-title"><i class="ti ti-git-branch"></i>Ricerca rintracciabilità</div>
+            <div class="card-title"><i class="ti ti-git-branch"></i>Ricerca Tracciabilità</div>
             <p style="font-size:13px;color:var(--grigio);margin-bottom:14px;">Inserisci un codice lotto (MP-, SM- o PF-) per ricostruire la catena completa.</p>
             <div class="fr"><label class="fl">Codice lotto</label><input class="fi" id="trace-in" placeholder="es. MP-20260707-CAR-001" style="font-family:'SF Mono',monospace;" onkeydown="if(event.key==='Enter')doTrace()"></div>
             <div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="doTrace()"><i class="ti ti-search"></i>Traccia catena completa</button></div>
@@ -409,7 +413,7 @@
               <div class="fr"><label class="fl">Nome completo</label><input class="fi" id="nu-nome" placeholder="es. Giovanni Bianchi"></div>
               <div class="fr"><label class="fl">Ruolo <span class="req">*</span></label><select class="fi" id="nu-ruolo"><option value="operatore">Operatore — MP, SM, PF, Magazzino</option><option value="admin">Admin — accesso completo</option></select></div>
               <div class="fr"><label class="fl">Password <span class="req">*</span></label><input class="fi" type="password" id="nu-pw" placeholder="Min. 6 caratteri"></div>
-              <div class="info-box info-verde"><i class="ti ti-info-circle"></i>L'operatore accede a MP, SM, PF e Magazzino. Non vede Spedizioni, Anagrafiche e Rintracciabilità.</div>
+              <div class="info-box info-verde"><i class="ti ti-info-circle"></i>L'operatore accede a MP, SM, PF e Magazzino. Non vede Spedizioni, Anagrafiche e Tracciabilità.</div>
               <div class="btn-row"><button class="btn btn-primary" onclick="addUtente(this)"><i class="ti ti-user-plus"></i>Crea utente</button></div>
             </div>
           </div>

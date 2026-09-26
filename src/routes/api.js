@@ -296,22 +296,92 @@ router.post('/lotti-pf', wrap(async (req, res) => {
 // ============================================================
 router.get('/magazzino/:tipo', wrap(async (req, res) => {
   const { tipo } = req.params;
-  if (tipo === 'mp') {
-    const { data } = await supabase.from('lotti_mp')
-      .select('codice_lotto,giacenza,unita_misura,stato,materiali(descrizione)').order('creato_il', { ascending: false });
-    return res.json((data || []).map((r) => ({ codice: r.codice_lotto, desc: r.materiali?.descrizione, giacenza: r.giacenza, um: r.unita_misura, stato: r.stato })));
-  }
-  if (tipo === 'sm') {
-    const { data } = await supabase.from('lotti_sm')
-      .select('codice_lotto,giacenza,unita_misura,stato,materiali(descrizione)').order('creato_il', { ascending: false });
-    return res.json((data || []).map((r) => ({ codice: r.codice_lotto, desc: r.materiali?.descrizione, giacenza: r.giacenza, um: r.unita_misura, stato: r.stato })));
-  }
-  if (tipo === 'pf') {
-    const { data } = await supabase.from('lotti_pf')
-      .select('codice_lotto,giacenza,unita_misura,stato,articoli_pf(descrizione)').order('creato_il', { ascending: false });
-    return res.json((data || []).map((r) => ({ codice: r.codice_lotto, desc: r.articoli_pf?.descrizione, giacenza: r.giacenza, um: r.unita_misura, stato: r.stato })));
-  }
-  res.status(400).json({ error: 'Tipo non valido' });
+  let query;
+  if (tipo === 'mp') query = supabase.from('lotti_mp').select('id,codice_lotto,quantita,giacenza,unita_misura,stato,materiali(descrizione)').gt('giacenza', 0).order('creato_il', { ascending: false });
+  else if (tipo === 'sm') query = supabase.from('lotti_sm').select('id,codice_lotto,quantita,giacenza,unita_misura,stato,materiali(descrizione)').gt('giacenza', 0).order('creato_il', { ascending: false });
+  else if (tipo === 'pf') query = supabase.from('lotti_pf').select('id,codice_lotto,quantita,giacenza,unita_misura,stato,articoli_pf(descrizione)').gt('giacenza', 0).order('creato_il', { ascending: false });
+  else return res.status(400).json({ error: 'Tipo non valido' });
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const rows = (data || []).map((r) => ({
+    id: r.id,
+    codice: r.codice_lotto,
+    desc: tipo === 'pf' ? r.articoli_pf?.descrizione : r.materiali?.descrizione,
+    quantita: r.quantita,
+    giacenza: r.giacenza,
+    um: r.unita_misura,
+    stato: r.stato,
+  }));
+
+  return res.json(rows);
+}));
+
+router.patch('/lotti-mp/:id', wrap(async (req, res) => {
+  const { giacenza, quantita, stato } = req.body || {};
+  const update = {};
+  if (giacenza !== undefined) update.giacenza = Math.max(0, Number(giacenza) || 0);
+  if (quantita !== undefined) update.quantita = Math.max(0, Number(quantita) || 0);
+  if (stato) update.stato = stato;
+  if (!Object.keys(update).length) return res.status(400).json({ error: 'Nessun dato da aggiornare' });
+  const { data, error } = await supabase.from('lotti_mp').update({
+    ...update,
+    stato: update.stato || calcolaStatoLotto('mp', update.giacenza ?? undefined),
+  }).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.patch('/lotti-sm/:id', wrap(async (req, res) => {
+  const { giacenza, quantita, stato } = req.body || {};
+  const update = {};
+  if (giacenza !== undefined) update.giacenza = Math.max(0, Number(giacenza) || 0);
+  if (quantita !== undefined) update.quantita = Math.max(0, Number(quantita) || 0);
+  if (stato) update.stato = stato;
+  if (!Object.keys(update).length) return res.status(400).json({ error: 'Nessun dato da aggiornare' });
+  const { data, error } = await supabase.from('lotti_sm').update({
+    ...update,
+    stato: update.stato || calcolaStatoLotto('sm', update.giacenza ?? undefined),
+  }).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.patch('/lotti-pf/:id', wrap(async (req, res) => {
+  const { giacenza, quantita, stato } = req.body || {};
+  const update = {};
+  if (giacenza !== undefined) update.giacenza = Math.max(0, Number(giacenza) || 0);
+  if (quantita !== undefined) update.quantita = Math.max(0, Number(quantita) || 0);
+  if (stato) update.stato = stato;
+  if (!Object.keys(update).length) return res.status(400).json({ error: 'Nessun dato da aggiornare' });
+  const { data, error } = await supabase.from('lotti_pf').update({
+    ...update,
+    stato: update.stato || calcolaStatoLotto('pf', update.giacenza ?? undefined),
+  }).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+async function azzeraLotto(tabella, id) {
+  const stato = tabella === 'lotti_mp' ? 'Esaurito' : tabella === 'lotti_sm' ? 'Esaurito' : 'Completato';
+  const { error } = await supabase.from(tabella).update({ giacenza: 0, quantita: 0, stato }).eq('id', id);
+  if (error) throw error;
+}
+
+router.delete('/lotti-mp/:id', wrap(async (req, res) => {
+  await azzeraLotto('lotti_mp', req.params.id);
+  res.json({ ok: true });
+}));
+
+router.delete('/lotti-sm/:id', wrap(async (req, res) => {
+  await azzeraLotto('lotti_sm', req.params.id);
+  res.json({ ok: true });
+}));
+
+router.delete('/lotti-pf/:id', wrap(async (req, res) => {
+  await azzeraLotto('lotti_pf', req.params.id);
+  res.json({ ok: true });
 }));
 
 // ============================================================
@@ -350,7 +420,7 @@ router.post('/spedizioni', requireAdmin, wrap(async (req, res) => {
 }));
 
 // ============================================================
-// RINTRACCIABILITÀ (solo admin)
+// TRACCIABILITÀ (solo admin)
 // ============================================================
 router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
   const codice = req.params.codice.trim();
@@ -467,6 +537,14 @@ router.delete('/utenti/:id', requireAdmin, wrap(async (req, res) => {
 // ============================================================
 // Helper: scala giacenza e aggiorna stato
 // ============================================================
+function calcolaStatoLotto(tipo, giacenza) {
+  const g = Number(giacenza ?? 0);
+  if (tipo === 'mp') return g <= 0 ? 'Esaurito' : 'Ok';
+  if (tipo === 'sm') return g <= 0 ? 'Esaurito' : 'Disponibile';
+  if (tipo === 'pf') return g <= 0 ? 'Completato' : 'In corso';
+  return 'Ok';
+}
+
 async function verificaDisponibilita(tabella, righe, idCampo) {
   if (!Array.isArray(righe)) return;
   const richieste = new Map();

@@ -519,17 +519,77 @@ async function salvaPF(btn) {
 // ============================================================
 // MAGAZZINO
 // ============================================================
+const MAG_STATE = { tipo: 'mp', rows: [] };
+
+function applyMagFilter() {
+  const q = (document.getElementById('mag-search')?.value || '').trim().toLowerCase();
+  const rows = MAG_STATE.rows.filter((r) => {
+    if (!q) return true;
+    const haystack = [r.codice, r.desc, r.stato, r.um].join(' ').toLowerCase();
+    return haystack.includes(q);
+  });
+  renderMagRows(MAG_STATE.tipo, rows);
+}
+
+function renderMagRows(tipo, rows) {
+  document.getElementById('mag-body').innerHTML = rows.length
+    ? rows.map((r) => `
+      <tr>
+        <td class="mono">${esc(r.codice)}</td>
+        <td>${esc(r.desc || '')}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input class="fi" type="number" min="0" value="${Number(r.giacenza) || 0}" style="width:92px;text-align:right;" data-mag-id="${esc(r.id)}" data-mag-tipo="${esc(tipo)}">
+            <span>${esc(r.um)}</span>
+          </div>
+        </td>
+        <td>${statoPill(r.stato)}</td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-verde" style="padding:6px 10px;font-size:12px;" onclick="salvaMagazzino('${esc(tipo)}','${esc(r.id)}', this.closest('tr'))"><i class="ti ti-device-floppy"></i>Salva</button>
+            <button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="eliminaMagazzino('${esc(tipo)}','${esc(r.id)}')"><i class="ti ti-trash"></i>Elimina</button>
+          </div>
+        </td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="5"><div class="empty"><i class="ti ti-package"></i><p>Magazzino vuoto</p></div></td></tr>';
+}
+
 function magTab(t, btn) {
   document.querySelectorAll('#page-mag .tab-btn').forEach((b) => b.classList.remove('on'));
   if (btn) btn.classList.add('on');
   loadMag(t);
 }
+
 async function loadMag(tipo) {
   try {
-    const rows = await api('/magazzino/' + tipo);
-    document.getElementById('mag-body').innerHTML = rows.length
-      ? rows.map((r) => `<tr><td class="mono">${esc(r.codice)}</td><td>${esc(r.desc || '')}</td><td>${fmt(r.giacenza)} ${esc(r.um)}</td><td>${statoPill(r.stato)}</td></tr>`).join('')
-      : '<tr><td colspan="4"><div class="empty"><i class="ti ti-package"></i><p>Magazzino vuoto</p></div></td></tr>';
+    MAG_STATE.tipo = tipo;
+    MAG_STATE.rows = await api('/magazzino/' + tipo);
+    applyMagFilter();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+async function salvaMagazzino(tipo, id, rowEl) {
+  const input = rowEl?.querySelector('input[data-mag-id]');
+  if (!input) return showToast('Riga non trovata', 'err');
+  const giacenza = Number(input.value);
+  if (!Number.isFinite(giacenza) || giacenza < 0) return showToast('Quantità non valida', 'err');
+  try {
+    await api('/lotti-' + tipo + '/' + id, {
+      method: 'PATCH',
+      body: { giacenza, quantita: giacenza }
+    });
+    showToast('Giacenza aggiornata');
+    await loadMag(tipo);
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+async function eliminaMagazzino(tipo, id) {
+  if (!confirm('Eliminare questo lotto dal magazzino?')) return;
+  try {
+    await api('/lotti-' + tipo + '/' + id, { method: 'DELETE' });
+    showToast('Lotto eliminato');
+    await loadMag(tipo);
   } catch (e) { showToast(e.message, 'err'); }
 }
 
@@ -712,7 +772,7 @@ async function addArticolo(btn) {
 }
 
 // ============================================================
-// RINTRACCIABILITÀ
+// Tracciabilità
 // ============================================================
 async function doTrace() {
   const v = val('trace-in').trim();
