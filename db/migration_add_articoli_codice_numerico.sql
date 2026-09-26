@@ -3,6 +3,8 @@
 
 alter table articoli_pf add column if not exists codice_numerico text;
 
+alter table articoli_pf drop column if exists gtin14;
+
 update articoli_pf
 set codice = case codice
   when 'SC-001' then 'SC01'
@@ -25,7 +27,7 @@ alter table articoli_pf alter column codice_numerico set not null;
 
 alter table articoli_pf drop constraint if exists articoli_pf_codice_check;
 alter table articoli_pf add constraint articoli_pf_codice_check
-  check (codice ~ '^[A-Za-z0-9]{4}$');
+  check (codice ~ '^[A-Za-z0-9]+$');
 
 alter table articoli_pf drop constraint if exists articoli_pf_codice_numerico_check;
 alter table articoli_pf add constraint articoli_pf_codice_numerico_check

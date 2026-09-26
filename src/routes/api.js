@@ -85,6 +85,28 @@ router.post('/fornitori', requireAdmin, wrap(async (req, res) => {
   res.json(data);
 }));
 
+router.patch('/fornitori/:id', requireAdmin, wrap(async (req, res) => {
+  const { ragione_sociale, piva, stato } = req.body || {};
+  const update = {};
+  if (ragione_sociale !== undefined) {
+    const value = String(ragione_sociale).trim();
+    if (!value) return res.status(400).json({ error: 'Ragione sociale obbligatoria' });
+    update.ragione_sociale = value;
+  }
+  if (piva !== undefined) update.piva = piva || null;
+  if (stato !== undefined) update.stato = stato || 'Attivo';
+  if (!Object.keys(update).length) return res.status(400).json({ error: 'Nessun dato da aggiornare' });
+  const { data, error } = await supabase.from('fornitori').update(update).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.delete('/fornitori/:id', requireAdmin, wrap(async (req, res) => {
+  const { error } = await supabase.from('fornitori').delete().eq('id', req.params.id);
+  if (error) throw error;
+  res.json({ ok: true });
+}));
+
 router.get('/clienti', wrap(async (req, res) => {
   const { data, error } = await supabase.from('clienti').select('*').order('ragione_sociale');
   if (error) throw error;
@@ -98,6 +120,30 @@ router.post('/clienti', requireAdmin, wrap(async (req, res) => {
     .insert({ ragione_sociale, partita_iva, email, telefono, stato: stato || 'Attivo' }).select().single();
   if (error) throw error;
   res.json(data);
+}));
+
+router.patch('/clienti/:id', requireAdmin, wrap(async (req, res) => {
+  const { ragione_sociale, partita_iva, email, telefono, stato } = req.body || {};
+  const update = {};
+  if (ragione_sociale !== undefined) {
+    const value = String(ragione_sociale).trim();
+    if (!value) return res.status(400).json({ error: 'Ragione sociale obbligatoria' });
+    update.ragione_sociale = value;
+  }
+  if (partita_iva !== undefined) update.partita_iva = partita_iva || null;
+  if (email !== undefined) update.email = email || null;
+  if (telefono !== undefined) update.telefono = telefono || null;
+  if (stato !== undefined) update.stato = stato || 'Attivo';
+  if (!Object.keys(update).length) return res.status(400).json({ error: 'Nessun dato da aggiornare' });
+  const { data, error } = await supabase.from('clienti').update(update).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.delete('/clienti/:id', requireAdmin, wrap(async (req, res) => {
+  const { error } = await supabase.from('clienti').delete().eq('id', req.params.id);
+  if (error) throw error;
+  res.json({ ok: true });
 }));
 
 router.get('/materiali', wrap(async (req, res) => {
@@ -125,6 +171,39 @@ router.post('/materiali', requireAdmin, wrap(async (req, res) => {
   res.json(data);
 }));
 
+router.patch('/materiali/:id', requireAdmin, wrap(async (req, res) => {
+  const { codice, codice_numerico, descrizione, tipo, unita_misura, soglia_minima } = req.body || {};
+  const update = {};
+  if (codice !== undefined) {
+    const value = String(codice).trim();
+    if (!value || !/^[A-Za-z0-9]{4}$/.test(value)) return res.status(400).json({ error: 'Il codice deve contenere 4 caratteri alfanumerici' });
+    update.codice = value.toUpperCase();
+  }
+  if (codice_numerico !== undefined) {
+    const value = String(codice_numerico).trim();
+    if (!/^[0-9]{4}$/.test(value)) return res.status(400).json({ error: 'Il codice numerico deve contenere 4 cifre' });
+    update.codice_numerico = value;
+  }
+  if (descrizione !== undefined) {
+    const value = String(descrizione).trim();
+    if (!value) return res.status(400).json({ error: 'Descrizione obbligatoria' });
+    update.descrizione = value;
+  }
+  if (tipo !== undefined) update.tipo = tipo || 'MP';
+  if (unita_misura !== undefined) update.unita_misura = unita_misura || 'kg';
+  if (soglia_minima !== undefined) update.soglia_minima = Number(soglia_minima) || 0;
+  if (!Object.keys(update).length) return res.status(400).json({ error: 'Nessun dato da aggiornare' });
+  const { data, error } = await supabase.from('materiali').update(update).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.delete('/materiali/:id', requireAdmin, wrap(async (req, res) => {
+  const { error } = await supabase.from('materiali').delete().eq('id', req.params.id);
+  if (error) throw error;
+  res.json({ ok: true });
+}));
+
 router.get('/articoli', wrap(async (req, res) => {
   const { data, error } = await supabase.from('articoli_pf').select('*').order('codice');
   if (error) throw error;
@@ -132,14 +211,45 @@ router.get('/articoli', wrap(async (req, res) => {
 }));
 
 router.post('/articoli', requireAdmin, wrap(async (req, res) => {
-  const { codice, codice_numerico, descrizione, gtin14, stato } = req.body;
+  const { codice, codice_numerico, descrizione, stato } = req.body;
   if (!codice || !descrizione) return res.status(400).json({ error: 'Codice e descrizione obbligatori' });
-  if (!/^[A-Za-z0-9]{4}$/.test(codice)) return res.status(400).json({ error: 'Il codice deve contenere 4 caratteri alfanumerici' });
+  if (!/^[A-Za-z0-9]+$/.test(codice)) return res.status(400).json({ error: 'Il codice deve contenere solo caratteri alfanumerici' });
   if (!/^[0-9]{4}$/.test(codice_numerico || '')) return res.status(400).json({ error: 'Il codice numerico deve contenere 4 cifre' });
   const { data, error } = await supabase.from('articoli_pf')
-    .insert({ codice: codice.toUpperCase(), codice_numerico, descrizione, gtin14, stato: stato || 'Attivo' }).select().single();
+    .insert({ codice: codice.toUpperCase(), codice_numerico, descrizione, stato: stato || 'Attivo' }).select().single();
   if (error) throw error;
   res.json(data);
+}));
+
+router.patch('/articoli/:id', requireAdmin, wrap(async (req, res) => {
+  const { codice, codice_numerico, descrizione, stato } = req.body || {};
+  const update = {};
+  if (codice !== undefined) {
+    const value = String(codice).trim();
+    if (!value || !/^[A-Za-z0-9]+$/.test(value)) return res.status(400).json({ error: 'Il codice deve contenere solo caratteri alfanumerici' });
+    update.codice = value.toUpperCase();
+  }
+  if (codice_numerico !== undefined) {
+    const value = String(codice_numerico).trim();
+    if (!/^[0-9]{4}$/.test(value)) return res.status(400).json({ error: 'Il codice numerico deve contenere 4 cifre' });
+    update.codice_numerico = value;
+  }
+  if (descrizione !== undefined) {
+    const value = String(descrizione).trim();
+    if (!value) return res.status(400).json({ error: 'Descrizione obbligatoria' });
+    update.descrizione = value;
+  }
+  if (stato !== undefined) update.stato = stato || 'Attivo';
+  if (!Object.keys(update).length) return res.status(400).json({ error: 'Nessun dato da aggiornare' });
+  const { data, error } = await supabase.from('articoli_pf').update(update).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.delete('/articoli/:id', requireAdmin, wrap(async (req, res) => {
+  const { error } = await supabase.from('articoli_pf').delete().eq('id', req.params.id);
+  if (error) throw error;
+  res.json({ ok: true });
 }));
 
 // ============================================================

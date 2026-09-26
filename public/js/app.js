@@ -696,6 +696,136 @@ function suggestNextArticleCode(articoli) {
   input.value = nextCode;
   input.dataset.suggestedCode = nextCode;
 }
+function anaActions(editFn, deleteFn, id, current, label) {
+  const safeId = String(id).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const safeLabel = String(label ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const safeCurrent = JSON.stringify(current).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+    <button class="act-btn" type="button" onclick='window.${editFn}("${safeId}", ${safeCurrent});'><i class="ti ti-pencil"></i></button>
+    <button class="act-btn danger" type="button" onclick='window.${deleteFn}("${safeId}", "${safeLabel}");'><i class="ti ti-trash"></i></button>
+  </div>`;
+}
+
+async function editFornitore(id, current) {
+  const ragione_sociale = prompt('Ragione sociale:', current.ragione_sociale || '');
+  if (ragione_sociale === null) return;
+  const piva = prompt('P.IVA:', current.piva || '');
+  if (piva === null) return;
+  const stato = prompt('Stato (Attivo/Sospeso):', current.stato || 'Attivo');
+  if (stato === null) return;
+  try {
+    await api(`/fornitori/${id}`, { method: 'PATCH', body: {
+      ragione_sociale: ragione_sociale.trim(),
+      piva: piva.trim(),
+      stato: stato.trim() || 'Attivo'
+    } });
+    showToast('Fornitore aggiornato');
+    loadAna();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+async function delFornitore(id, ragione_sociale) {
+  if (!confirm(`Eliminare il fornitore "${ragione_sociale}"?`)) return;
+  try { await api(`/fornitori/${id}`, { method: 'DELETE' }); showToast('Fornitore eliminato'); loadAna(); }
+  catch (e) { showToast(e.message, 'err'); }
+}
+
+async function editCliente(id, current) {
+  const ragione_sociale = prompt('Ragione sociale:', current.ragione_sociale || '');
+  if (ragione_sociale === null) return;
+  const partita_iva = prompt('P.IVA:', current.partita_iva || '');
+  if (partita_iva === null) return;
+  const email = prompt('Email:', current.email || '');
+  if (email === null) return;
+  const telefono = prompt('Telefono:', current.telefono || '');
+  if (telefono === null) return;
+  const stato = prompt('Stato (Attivo/Sospeso):', current.stato || 'Attivo');
+  if (stato === null) return;
+  try {
+    await api(`/clienti/${id}`, { method: 'PATCH', body: {
+      ragione_sociale: ragione_sociale.trim(),
+      partita_iva: partita_iva.trim(),
+      email: email.trim(),
+      telefono: telefono.trim(),
+      stato: stato.trim() || 'Attivo'
+    } });
+    showToast('Cliente aggiornato');
+    loadAna();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+async function delCliente(id, ragione_sociale) {
+  if (!confirm(`Eliminare il cliente "${ragione_sociale}"?`)) return;
+  try { await api(`/clienti/${id}`, { method: 'DELETE' }); showToast('Cliente eliminato'); loadAna(); }
+  catch (e) { showToast(e.message, 'err'); }
+}
+
+async function editMateriale(id, current) {
+  const codice = prompt('Codice (4 caratteri alfanumerici):', current.codice || '');
+  if (codice === null) return;
+  const codice_numerico = prompt('Codice numerico (4 cifre):', current.codice_numerico || '');
+  if (codice_numerico === null) return;
+  const descrizione = prompt('Descrizione:', current.descrizione || '');
+  if (descrizione === null) return;
+  const tipo = prompt('Tipo (MP/SM):', current.tipo || 'MP');
+  if (tipo === null) return;
+  const unita_misura = prompt('Unità di misura:', current.unita_misura || 'kg');
+  if (unita_misura === null) return;
+  const soglia_minima = prompt('Soglia minima:', String(current.soglia_minima ?? 0));
+  if (soglia_minima === null) return;
+  try {
+    await api(`/materiali/${id}`, { method: 'PATCH', body: {
+      codice: codice.trim(),
+      codice_numerico: codice_numerico.trim(),
+      descrizione: descrizione.trim(),
+      tipo: tipo.trim().toUpperCase(),
+      unita_misura: unita_misura.trim(),
+      soglia_minima: Number(soglia_minima)
+    } });
+    showToast('Materiale aggiornato');
+    loadAna();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+async function delMateriale(id, codice) {
+  if (!confirm(`Eliminare il materiale "${codice}"?`)) return;
+  try { await api(`/materiali/${id}`, { method: 'DELETE' }); showToast('Materiale eliminato'); loadAna(); }
+  catch (e) {
+    msg = e.message || '';
+    if (msg.includes('foreign key constraint')) msg = 'Impossibile eliminare il materiale perché è collegato a lotti o ordini.'; 
+    showToast(msg, 'err'); }
+}
+
+async function editArticolo(id, current) {
+  const codice = prompt('Codice articolo:', current.codice || '');
+  if (codice === null) return;
+  const codice_numerico = prompt('Codice numerico (4 cifre):', current.codice_numerico || '');
+  if (codice_numerico === null) return;
+  const descrizione = prompt('Descrizione:', current.descrizione || '');
+  if (descrizione === null) return;
+  const stato = prompt('Stato (Attivo/Bozza):', current.stato || 'Attivo');
+  if (stato === null) return;
+  try {
+    await api(`/articoli/${id}`, { method: 'PATCH', body: {
+      codice: codice.trim(),
+      codice_numerico: codice_numerico.trim(),
+      descrizione: descrizione.trim(),
+      stato: stato.trim() || 'Attivo'
+    } });
+    showToast('Articolo aggiornato');
+    loadAna();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+async function delArticolo(id, codice) {
+  if (!confirm(`Eliminare l'articolo "${codice}"?`)) return;
+  try { await api(`/articoli/${id}`, { method: 'DELETE' }); showToast('Articolo eliminato'); loadAna(); }
+  catch (e) { 
+    msg = e.message || '';
+    if (msg.includes('foreign key constraint')) msg = 'Impossibile eliminare l\'articolo perché è collegato a lotti o ordini.';
+    showToast(msg, 'err'); }
+}
+
 async function loadAna() {
   try {
     const [forn, clienti, mat, art, tipologie] = await Promise.all([api('/fornitori'), api('/clienti'), api('/materiali'), api('/articoli'), api('/tipologie')]);
@@ -704,13 +834,13 @@ async function loadAna() {
     suggestNextMaterialCode(materialiAnagrafica);
     suggestNextArticleCode(articoliAnagrafica);
     document.getElementById('ana-f-body').innerHTML = forn.map((f) =>
-      `<tr><td>${esc(f.ragione_sociale)}</td><td class="mono">${esc(f.piva || '—')}</td><td>${statoPill(f.stato)}</td></tr>`).join('') || '<tr><td colspan="3"><div class="empty"><p>Nessun fornitore</p></div></td></tr>';
+      `<tr><td>${esc(f.ragione_sociale)}</td><td class="mono">${esc(f.piva || '—')}</td><td>${statoPill(f.stato)}</td><td>${anaActions('editFornitore', 'delFornitore', f.id, f, f.ragione_sociale)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessun fornitore</p></div></td></tr>';
     document.getElementById('ana-c-body').innerHTML = clienti.map((c) =>
-      `<tr><td>${esc(c.ragione_sociale)}</td><td class="mono">${esc(c.partita_iva || '—')}</td><td class="mono">${esc(c.email || '—')}</td><td>${statoPill(c.stato)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessun cliente</p></div></td></tr>';
+      `<tr><td>${esc(c.ragione_sociale)}</td><td class="mono">${esc(c.partita_iva || '—')}</td><td class="mono">${esc(c.email || '—')}</td><td>${statoPill(c.stato)}</td><td>${anaActions('editCliente', 'delCliente', c.id, c, c.ragione_sociale)}</td></tr>`).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun cliente</p></div></td></tr>';
     document.getElementById('ana-m-body').innerHTML = mat.map((m) =>
-      `<tr><td class="mono">${esc(m.codice)}</td><td class="mono">${esc(m.codice_numerico)}</td><td>${esc(m.descrizione)}</td><td>${pill(m.tipo, m.tipo === 'MP' ? 'pill-verde' : 'pill-viola')}</td><td>${esc(m.unita_misura)}</td></tr>`).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun materiale</p></div></td></tr>';
+      `<tr><td class="mono">${esc(m.codice)}</td><td class="mono">${esc(m.codice_numerico)}</td><td>${esc(m.descrizione)}</td><td>${pill(m.tipo, m.tipo === 'MP' ? 'pill-verde' : 'pill-viola')}</td><td>${esc(m.unita_misura)}</td><td>${anaActions('editMateriale', 'delMateriale', m.id, m, m.codice)}</td></tr>`).join('') || '<tr><td colspan="6"><div class="empty"><p>Nessun materiale</p></div></td></tr>';
     document.getElementById('ana-a-body').innerHTML = art.map((a) =>
-      `<tr><td class="mono">${esc(a.codice)}</td><td class="mono">${esc(a.codice_numerico)}</td><td>${esc(a.descrizione)}</td><td class="mono">${esc(a.gtin14 || '—')}</td><td>${statoPill(a.stato)}</td></tr>`).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun articolo</p></div></td></tr>';
+      `<tr><td class="mono">${esc(a.codice)}</td><td class="mono">${esc(a.codice_numerico)}</td><td>${esc(a.descrizione)}</td><td>${statoPill(a.stato)}</td><td>${anaActions('editArticolo', 'delArticolo', a.id, a, a.codice)}</td></tr>`).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun articolo</p></div></td></tr>';
     const tipologiaColumns = Object.keys(tipologie[0] || {});
     document.getElementById('ana-t-head').innerHTML = tipologiaColumns.length
       ? `<tr>${tipologiaColumns.map((column) => `<th>${esc(column)}</th>`).join('')}</tr>`
@@ -761,12 +891,12 @@ async function addMateriale(btn) {
 async function addArticolo(btn) {
   const codice = val('aa-cod').trim(), codice_numerico = val('aa-cod-num').trim(), descrizione = val('aa-desc');
   if (!codice || !descrizione) return showToast('Codice e descrizione obbligatori', 'err');
-  if (!/^[A-Za-z0-9]{4}$/.test(codice)) return showToast('Il codice deve contenere 4 caratteri alfanumerici', 'err');
+  if (!/^[A-Za-z0-9]+$/.test(codice)) return showToast('Il codice deve contenere solo caratteri alfanumerici', 'err');
   if (!/^[0-9]{4}$/.test(codice_numerico)) return showToast('Il codice numerico deve contenere 4 cifre', 'err');
   try {
-    await api('/articoli', { method: 'POST', body: { codice, codice_numerico, descrizione, gtin14: val('aa-gtin'), stato: val('aa-stato') } });
+    await api('/articoli', { method: 'POST', body: { codice, codice_numerico, descrizione, stato: 'Attivo' } });
     showToast('Articolo aggiunto');
-    ['aa-cod', 'aa-cod-num', 'aa-desc', 'aa-gtin'].forEach((id) => (document.getElementById(id).value = ''));
+    ['aa-cod', 'aa-cod-num', 'aa-desc'].forEach((id) => (document.getElementById(id).value = ''));
     loadAna();
   } catch (e) { showToast(e.message, 'err'); }
 }
