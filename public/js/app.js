@@ -674,7 +674,7 @@ let articoliAnagrafica = [];
 function suggestNextMaterialCode(materiali) {
   const input = document.getElementById('am-cod-num');
   if (!input || input.value.trim() && input.value !== input.dataset.suggestedCode) return;
-  const tipo = val('am-tipo');
+  const tipo = "MP";
   const usedCodes = materiali
     .filter((materiale) => materiale.tipo === tipo)
     .map((materiale) => Number.parseInt(materiale.codice_numerico, 10))
@@ -683,9 +683,9 @@ function suggestNextMaterialCode(materiali) {
   input.value = nextCode;
   input.dataset.suggestedCode = nextCode;
 }
-function updateMaterialCodeSuggestion() {
-  suggestNextMaterialCode(materialiAnagrafica);
-}
+// function updateMaterialCodeSuggestion() {
+//   suggestNextMaterialCode(materialiAnagrafica);
+// }
 function suggestNextArticleCode(articoli) {
   const input = document.getElementById('aa-cod-num');
   if (!input || input.value.trim() && input.value !== input.dataset.suggestedCode) return;
@@ -882,7 +882,7 @@ async function addMateriale(btn) {
   if (!/^[A-Za-z0-9]{4}$/.test(codice)) return showToast('Il codice deve contenere 4 caratteri alfanumerici', 'err');
   if (!/^[0-9]{4}$/.test(codice_numerico)) return showToast('Il codice numerico deve contenere 4 cifre', 'err');
   try {
-    await api('/materiali', { method: 'POST', body: { codice, codice_numerico, descrizione, tipo: val('am-tipo'), unita_misura: val('am-um'), soglia_minima: val('am-soglia') } });
+    await api('/materiali', { method: 'POST', body: { codice, codice_numerico, descrizione, tipo: "MP", unita_misura: val('am-um'), soglia_minima: 0 } });
     showToast('Materiale aggiunto');
     ['am-cod', 'am-cod-num', 'am-desc'].forEach((id) => (document.getElementById(id).value = ''));
     loadAna();
