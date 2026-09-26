@@ -87,7 +87,7 @@ App su **http://localhost:3000**
 
 ## Ruoli e permessi
 - **Operatore** — Dashboard, Ricevimento MP, Lavorazione SM, Produzione PF, Magazzino
-- **Admin** — tutto quanto sopra + Spedizioni/DDT, Anagrafiche, Rintracciabilità, Gestione utenti
+- **Admin** — tutto quanto sopra + Spedizioni/DDT, Anagrafiche, Tracciabilità, Gestione utenti
 
 I permessi sono applicati sia lato UI (voci di menu nascoste) sia lato server
 (le API riservate rispondono `403` agli operatori).
@@ -100,12 +100,12 @@ I permessi sono applicati sia lato UI (voci di menu nascoste) sia lato server
 5. **Magazzino** — giacenze correnti MP / SM / PF
 6. **SPEDIZIONI PF** — genera `DDT-AAAA-NNNN`, scarica le giacenze PF
 7. **Anagrafiche** — fornitori, materiali MP/SM, articoli PF (GTIN-14)
-8. **Rintracciabilità** — ricostruisce la catena a monte/valle da qualsiasi codice lotto
+8. **Tracciabilità** — ricostruisce la catena a monte/valle da qualsiasi codice lotto
 9. **Gestione utenti** — crea/disabilita/elimina utenti, reset password
 
 ## Tracciabilità
 Le tabelle ponte `sm_consumi_mp`, `pf_consumi_mp`, `pf_consumi_sm` e
-`spedizioni_righe` registrano i legami tra lotti. La ricerca di rintracciabilità
+`spedizioni_righe` registrano i legami tra lotti. La ricerca di Tracciabilità
 naviga questi legami in entrambe le direzioni:
 - da un lotto **MP** → verso gli SM/PF che lo hanno usato
 - da un lotto **PF** → verso SM, MP e il DDT di spedizione
