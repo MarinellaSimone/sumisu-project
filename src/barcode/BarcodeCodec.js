@@ -18,11 +18,11 @@ class BarcodeCodec {
         quantity,
         codTipologia,
         codNumerico,
-        codIncrementale,
     }) {
 
         const exp = this.formatDate(expiryDate);
-        const codUnivoco = `${codTipologia}${codNumerico}${codIncrementale}`;
+        const normalizedCodNumerico = String(codNumerico ?? '').trim();
+        const codUnivoco = `${codTipologia}${normalizedCodNumerico}`;
         const encoded =
             `01${FIXED_GTIN}` +
             `10${codUnivoco}` +
