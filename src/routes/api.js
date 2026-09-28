@@ -85,6 +85,29 @@ router.post('/fornitori', requireAdmin, wrap(async (req, res) => {
   res.json(data);
 }));
 
+router.patch('/fornitori/:id', requireAdmin, wrap(async (req, res) => {
+  const { ragione_sociale, piva, stato } = req.body || {};
+  if (!ragione_sociale || !String(ragione_sociale).trim()) {
+    return res.status(400).json({ error: 'Ragione sociale obbligatoria' });
+  }
+
+  const payload = {
+    ragione_sociale: String(ragione_sociale).trim(),
+    piva: piva && String(piva).trim() ? String(piva).trim() : null,
+    stato: stato || 'Attivo',
+  };
+
+  const { data, error } = await supabase.from('fornitori').update(payload).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.delete('/fornitori/:id', requireAdmin, wrap(async (req, res) => {
+  const { error } = await supabase.from('fornitori').delete().eq('id', req.params.id);
+  if (error) throw error;
+  res.json({ ok: true });
+}));
+
 router.get('/clienti', wrap(async (req, res) => {
   const { data, error } = await supabase.from('clienti').select('*').order('ragione_sociale');
   if (error) throw error;
@@ -98,6 +121,31 @@ router.post('/clienti', requireAdmin, wrap(async (req, res) => {
     .insert({ ragione_sociale, partita_iva, email, telefono, stato: stato || 'Attivo' }).select().single();
   if (error) throw error;
   res.json(data);
+}));
+
+router.patch('/clienti/:id', requireAdmin, wrap(async (req, res) => {
+  const { ragione_sociale, partita_iva, email, telefono, stato } = req.body || {};
+  if (!ragione_sociale || !String(ragione_sociale).trim()) {
+    return res.status(400).json({ error: 'Ragione sociale obbligatoria' });
+  }
+
+  const payload = {
+    ragione_sociale: String(ragione_sociale).trim(),
+    partita_iva: partita_iva && String(partita_iva).trim() ? String(partita_iva).trim() : null,
+    email: email && String(email).trim() ? String(email).trim() : null,
+    telefono: telefono && String(telefono).trim() ? String(telefono).trim() : null,
+    stato: stato || 'Attivo',
+  };
+
+  const { data, error } = await supabase.from('clienti').update(payload).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.delete('/clienti/:id', requireAdmin, wrap(async (req, res) => {
+  const { error } = await supabase.from('clienti').delete().eq('id', req.params.id);
+  if (error) throw error;
+  res.json({ ok: true });
 }));
 
 router.get('/materiali', wrap(async (req, res) => {
@@ -130,6 +178,32 @@ router.post('/materiali', requireAdmin, wrap(async (req, res) => {
   res.json(data);
 }));
 
+router.patch('/materiali/:id', requireAdmin, wrap(async (req, res) => {
+  const { codice, codice_numerico, descrizione, tipo, unita_misura, soglia_minima } = req.body || {};
+  if (!codice || !descrizione) return res.status(400).json({ error: 'Codice e descrizione obbligatori' });
+  if (!/^[A-Za-z0-9]+$/.test(String(codice || ''))) return res.status(400).json({ error: 'Il codice deve contenere solo caratteri alfanumerici' });
+  if (!/^[0-9]{7}$/.test(String(codice_numerico || ''))) return res.status(400).json({ error: 'Il codice numerico deve contenere 7 cifre' });
+
+  const payload = {
+    codice: String(codice).trim().toUpperCase(),
+    codice_numerico: String(codice_numerico).trim(),
+    descrizione: String(descrizione).trim(),
+    tipo: String(tipo || 'MP').trim().toUpperCase(),
+    unita_misura: String(unita_misura || 'kg').trim(),
+    soglia_minima: Number(soglia_minima) || 0,
+  };
+
+  const { data, error } = await supabase.from('materiali').update(payload).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.delete('/materiali/:id', requireAdmin, wrap(async (req, res) => {
+  const { error } = await supabase.from('materiali').delete().eq('id', req.params.id);
+  if (error) throw error;
+  res.json({ ok: true });
+}));
+
 router.get('/articoli', wrap(async (req, res) => {
   const { data, error } = await supabase.from('articoli_pf').select('*').order('codice');
   if (error) throw error;
@@ -145,6 +219,30 @@ router.post('/articoli', requireAdmin, wrap(async (req, res) => {
     .insert({ codice: codice.toUpperCase(), codice_numerico, descrizione, gtin14, stato: stato || 'Attivo' }).select().single();
   if (error) throw error;
   res.json(data);
+}));
+
+router.patch('/articoli/:id', requireAdmin, wrap(async (req, res) => {
+  const { codice, codice_numerico, descrizione, stato } = req.body || {};
+  if (!codice || !descrizione) return res.status(400).json({ error: 'Codice e descrizione obbligatori' });
+  if (!/^[A-Za-z0-9]+$/.test(String(codice || ''))) return res.status(400).json({ error: 'Il codice deve contenere solo caratteri alfanumerici' });
+  if (!/^[0-9]{7}$/.test(String(codice_numerico || ''))) return res.status(400).json({ error: 'Il codice numerico deve contenere 7 cifre' });
+
+  const payload = {
+    codice: String(codice).trim().toUpperCase(),
+    codice_numerico: String(codice_numerico).trim(),
+    descrizione: String(descrizione).trim(),
+    stato: stato || 'Attivo',
+  };
+
+  const { data, error } = await supabase.from('articoli_pf').update(payload).eq('id', req.params.id).select().single();
+  if (error) throw error;
+  res.json(data);
+}));
+
+router.delete('/articoli/:id', requireAdmin, wrap(async (req, res) => {
+  const { error } = await supabase.from('articoli_pf').delete().eq('id', req.params.id);
+  if (error) throw error;
+  res.json({ ok: true });
 }));
 
 // ============================================================
