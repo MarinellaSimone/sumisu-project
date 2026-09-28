@@ -3411,8 +3411,8 @@ CREATE TABLE public.articoli_pf (
     stato text DEFAULT 'Attivo'::text NOT NULL,
     creato_il timestamp with time zone DEFAULT now() NOT NULL,
     codice_numerico text NOT NULL,
-    CONSTRAINT articoli_pf_codice_check CHECK ((codice ~ '^[A-Za-z0-9]{4}$'::text)),
-    CONSTRAINT articoli_pf_codice_numerico_check CHECK ((codice_numerico ~ '^[0-9]{4}$'::text)),
+    CONSTRAINT articoli_pf_codice_check CHECK ((codice ~ '^[A-Za-z0-9]+$'::text)),
+    CONSTRAINT articoli_pf_codice_numerico_check CHECK ((codice_numerico ~ '^[0-9]{7}$'::text)),
     CONSTRAINT articoli_pf_stato_check CHECK ((stato = ANY (ARRAY['Attivo'::text, 'Bozza'::text])))
 );
 
@@ -3540,8 +3540,8 @@ CREATE TABLE public.materiali (
     soglia_minima numeric DEFAULT 0,
     creato_il timestamp with time zone DEFAULT now() NOT NULL,
     codice_numerico text NOT NULL,
-    CONSTRAINT materiali_codice_check CHECK ((codice ~ '^[A-Za-z0-9]{4}$'::text)),
-    CONSTRAINT materiali_codice_numerico_check CHECK ((codice_numerico ~ '^[0-9]{4}$'::text)),
+    CONSTRAINT materiali_codice_check CHECK ((codice ~ '^[A-Za-z0-9]+$'::text)),
+    CONSTRAINT materiali_codice_numerico_check CHECK ((codice_numerico ~ '^[0-9]{7}$'::text)),
     CONSTRAINT materiali_tipo_check CHECK ((tipo = ANY (ARRAY['MP'::text, 'SM'::text])))
 );
 

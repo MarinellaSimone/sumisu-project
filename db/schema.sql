@@ -122,7 +122,7 @@ create table if not exists sm_consumi_mp (
 create table if not exists lotti_pf (
   id            uuid primary key default gen_random_uuid(),
   codice_lotto  text unique not null,        -- PF-AAAAMMGG-ART-NNN
-  articolo_id   uuid references articoli_pf(id),
+  articolo_id   uuid references articoli_pf(id) on delete cascade,
   quantita      numeric not null default 0,
   unita_misura  text not null default 'pz',
   giacenza      numeric not null default 0,

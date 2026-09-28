@@ -674,12 +674,10 @@ let articoliAnagrafica = [];
 function suggestNextMaterialCode(materiali) {
   const input = document.getElementById('am-cod-num');
   if (!input || input.value.trim() && input.value !== input.dataset.suggestedCode) return;
-  const tipo = "MP";
   const usedCodes = materiali
-    .filter((materiale) => materiale.tipo === tipo)
     .map((materiale) => Number.parseInt(materiale.codice_numerico, 10))
     .filter((codice) => Number.isInteger(codice) && codice >= 0);
-  const nextCode = (usedCodes.length ? Math.max(...usedCodes) + 1 : 1).toString().padStart(4, '0');
+  const nextCode = (usedCodes.length ? Math.max(...usedCodes) + 1 : 1).toString().padStart(7, '0');
   input.value = nextCode;
   input.dataset.suggestedCode = nextCode;
 }
@@ -692,7 +690,7 @@ function suggestNextArticleCode(articoli) {
   const usedCodes = articoli
     .map((articolo) => Number.parseInt(articolo.codice_numerico, 10))
     .filter((codice) => Number.isInteger(codice) && codice >= 0);
-  const nextCode = (usedCodes.length ? Math.max(...usedCodes) + 1 : 1).toString().padStart(4, '0');
+  const nextCode = (usedCodes.length ? Math.max(...usedCodes) + 1 : 1).toString().padStart(7, '0');
   input.value = nextCode;
   input.dataset.suggestedCode = nextCode;
 }
@@ -763,7 +761,7 @@ async function delCliente(id, ragione_sociale) {
 async function editMateriale(id, current) {
   const codice = prompt('Codice (4 caratteri alfanumerici):', current.codice || '');
   if (codice === null) return;
-  const codice_numerico = prompt('Codice numerico (4 cifre):', current.codice_numerico || '');
+  const codice_numerico = prompt('Codice numerico (7 cifre):', current.codice_numerico || '');
   if (codice_numerico === null) return;
   const descrizione = prompt('Descrizione:', current.descrizione || '');
   if (descrizione === null) return;
@@ -799,7 +797,7 @@ async function delMateriale(id, codice) {
 async function editArticolo(id, current) {
   const codice = prompt('Codice articolo:', current.codice || '');
   if (codice === null) return;
-  const codice_numerico = prompt('Codice numerico (4 cifre):', current.codice_numerico || '');
+  const codice_numerico = prompt('Codice numerico (7 cifre):', current.codice_numerico || '');
   if (codice_numerico === null) return;
   const descrizione = prompt('Descrizione:', current.descrizione || '');
   if (descrizione === null) return;
@@ -879,8 +877,8 @@ async function addCliente(btn) {
 async function addMateriale(btn) {
   const codice = val('am-cod').trim(), codice_numerico = val('am-cod-num').trim(), descrizione = val('am-desc');
   if (!codice || !descrizione) return showToast('Codice e descrizione obbligatori', 'err');
-  if (!/^[A-Za-z0-9]{4}$/.test(codice)) return showToast('Il codice deve contenere 4 caratteri alfanumerici', 'err');
-  if (!/^[0-9]{4}$/.test(codice_numerico)) return showToast('Il codice numerico deve contenere 4 cifre', 'err');
+  if (!/^[A-Za-z0-9]+$/.test(codice)) return showToast('Il codice deve contenere solo caratteri alfanumerici', 'err');
+  if (!/^[0-9]{7}$/.test(codice_numerico)) return showToast('Il codice numerico deve contenere 7 cifre', 'err');
   try {
     await api('/materiali', { method: 'POST', body: { codice, codice_numerico, descrizione, tipo: "MP", unita_misura: val('am-um'), soglia_minima: 0 } });
     showToast('Materiale aggiunto');
@@ -892,7 +890,7 @@ async function addArticolo(btn) {
   const codice = val('aa-cod').trim(), codice_numerico = val('aa-cod-num').trim(), descrizione = val('aa-desc');
   if (!codice || !descrizione) return showToast('Codice e descrizione obbligatori', 'err');
   if (!/^[A-Za-z0-9]+$/.test(codice)) return showToast('Il codice deve contenere solo caratteri alfanumerici', 'err');
-  if (!/^[0-9]{4}$/.test(codice_numerico)) return showToast('Il codice numerico deve contenere 4 cifre', 'err');
+  if (!/^[0-9]{7}$/.test(codice_numerico)) return showToast('Il codice numerico deve contenere 7 cifre', 'err');
   try {
     await api('/articoli', { method: 'POST', body: { codice, codice_numerico, descrizione, stato: 'Attivo' } });
     showToast('Articolo aggiunto');

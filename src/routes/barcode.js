@@ -88,8 +88,7 @@ router.get("/generate", async (req, res) => {
             expiryDate: date,
             quantity: Number(quantity),
             codTipologia: tipologia.codice,
-            codNumerico: codiceMateriale.codice_numerico,
-            codIncrementale: lot.split("-")[3]
+            codNumerico: codiceMateriale.codice_numerico
         });
 
         // Generate barcode image
