@@ -302,9 +302,8 @@ function smLotAddTab(mode, btn) {
 
 async function loadSM() {
   try {
-    const [forn, smMat, mpLotti, lotti] = await Promise.all([api('/fornitori'), api('/materiali?tipo=SM'), api('/lotti-mp'), api('/lotti-sm')]);
+    const [forn, mpLotti, lotti] = await Promise.all([api('/fornitori'), api('/lotti-mp'), api('/lotti-sm')]);
     fillSelect('sm-fornitore', forn.map((f) => ({ v: f.id, t: f.ragione_sociale })), true, '— nessuno —');
-    fillSelect('sm-tipo', smMat.map((m) => ({ v: m.id, t: `${m.codice} · ${m.descrizione}` })));
     window.__mpLotti = mpLotti;
     fillSelect('sm-mp-sel', mpLotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto MP…');
     if (!document.getElementById('sm-data').value) document.getElementById('sm-data').value = today();
@@ -374,13 +373,51 @@ function renderSMConsumi() {
   ).join('');
 }
 
+function getNextMaterialCodeNumber(materiali, tipo = 'MP') {
+  const usedCodes = (materiali || [])
+    .filter((materiale) => String(materiale.tipo || 'MP').toUpperCase() === String(tipo).toUpperCase())
+    .map((materiale) => Number.parseInt(materiale.codice_numerico, 10))
+    .filter((codice) => Number.isInteger(codice) && codice >= 0);
+  return (usedCodes.length ? Math.max(...usedCodes) + 1 : 1).toString().padStart(7, '0');
+}
+
+async function createSMMaterialFromForm() {
+  const codice = val('sm-tipo').trim().replace(/\s+/g, '').toUpperCase();
+  if (!codice) throw new Error('Inserisci il tipo di semilavorato');
+  if (!/^[A-Za-z0-9]+$/.test(codice)) throw new Error('Il tipo semilavorato può contenere solo caratteri alfanumerici');
+
+  const materiali = await api('/materiali');
+  const existing = materiali.find((materiale) => String(materiale.codice).toUpperCase() === codice && String(materiale.tipo || 'MP').toUpperCase() === 'SM');
+  if (existing) {
+    materialiAnagrafica = materiali;
+    return existing.id;
+  }
+
+  const materiale = await api('/materiali', {
+    method: 'POST',
+    body: {
+      codice,
+      codice_numerico: getNextMaterialCodeNumber(materiali, 'SM'),
+      descrizione: codice,
+      tipo: 'SM',
+      unita_misura: val('sm-um') || 'kg',
+      soglia_minima: 0,
+    }
+  });
+
+  materialiAnagrafica = [...materiali, materiale];
+  return materiale.id;
+}
+
 async function salvaSM(btn) {
-  const tipo = val('sm-tipo'), qty = val('sm-qty');
-  if (!tipo) return showToast('Seleziona il tipo di semilavorato', 'err');
+  const tipo = val('sm-tipo').trim();
+  const qty = val('sm-qty');
+  if (!tipo) return showToast('Inserisci il tipo di semilavorato', 'err');
   loading(true, 'Registrazione SM…');
   try {
+    const tipoSemilavorato = await createSMMaterialFromForm();
     const r = await api('/lotti-sm', { method: 'POST', body: {
-      tipo_semilavorato: tipo, lavorazione: smTipo === 'ext' ? 'esterna' : 'interna',
+      tipo_semilavorato: tipoSemilavorato, lavorazione: smTipo === 'ext' ? 'esterna' : 'interna',
       fornitore_sm_id: smTipo === 'ext' ? (val('sm-fornitore') || null) : null,
       ddt_numero: val('sm-ddt'), ddt_data: val('sm-ddt-data'),
       quantita: qty, unita_misura: val('sm-um'), data_lavorazione: val('sm-data'), note: val('sm-note'),
@@ -394,6 +431,7 @@ async function salvaSM(btn) {
     ['sm-note'].forEach((id) => (document.getElementById(id).value = ''));
     document.getElementById('sm-qty').value = 0;
     document.getElementById('sm-tipo').value = '';
+    smConsumi = []; renderSMConsumi();
     loadSM();
   } catch (e) { showToast(e.message, 'err'); }
   finally { loading(false); }
@@ -674,10 +712,7 @@ let articoliAnagrafica = [];
 function suggestNextMaterialCode(materiali) {
   const input = document.getElementById('am-cod-num');
   if (!input || input.value.trim() && input.value !== input.dataset.suggestedCode) return;
-  const usedCodes = materiali
-    .map((materiale) => Number.parseInt(materiale.codice_numerico, 10))
-    .filter((codice) => Number.isInteger(codice) && codice >= 0);
-  const nextCode = (usedCodes.length ? Math.max(...usedCodes) + 1 : 1).toString().padStart(7, '0');
+  const nextCode = getNextMaterialCodeNumber(materiali, 'MP');
   input.value = nextCode;
   input.dataset.suggestedCode = nextCode;
 }
