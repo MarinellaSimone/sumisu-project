@@ -118,8 +118,13 @@ router.post('/materiali', requireAdmin, wrap(async (req, res) => {
   if (!codice || !descrizione) return res.status(400).json({ error: 'Codice e descrizione obbligatori' });
   if (!/^[A-Za-z0-9]+$/.test(String(codice || ''))) return res.status(400).json({ error: 'Il codice deve contenere solo caratteri alfanumerici' });
   if (!/^[0-9]{7}$/.test(String(codice_numerico || ''))) return res.status(400).json({ error: 'Il codice numerico deve contenere 7 cifre' });
+
+  const normalizedCode = String(codice).trim().toUpperCase();
+  const { data: existing } = await supabase.from('materiali').select('*').ilike('codice', normalizedCode).maybeSingle();
+  if (existing) return res.json(existing);
+
   const { data, error } = await supabase.from('materiali')
-    .insert({ codice: codice.toUpperCase(), codice_numerico, descrizione, tipo: tipo || 'MP', unita_misura: unita_misura || 'kg', soglia_minima: soglia_minima || 0 })
+    .insert({ codice: normalizedCode, codice_numerico, descrizione, tipo: tipo || 'MP', unita_misura: unita_misura || 'kg', soglia_minima: soglia_minima || 0 })
     .select().single();
   if (error) throw error;
   res.json(data);
@@ -199,7 +204,7 @@ router.post('/lotti-sm', wrap(async (req, res) => {
   await verificaDisponibilita('lotti_mp', consumi, 'lotto_mp_id'); //TODO: verificare perche ci sono gli id "mp" e non "sm" nei consumi
 
   const { data: materiale } = await supabase.from('materiali').select('codice').eq('id', tipo_semilavorato).maybeSingle();
-  const sigla = (materiale?.codice || 'SM') //(materiale?.codice || 'SM').replace(/[^A-Za-z]/g, '').slice(0, 4);;
+  const sigla = String(materiale?.codice || 'SM').toUpperCase().replace(/[^A-Z0-9]/g, '');
   const codice_lotto = await generaLottoSM(sigla, data_lavorazione);
 
   const { data: lotto, error } = await supabase.from('lotti_sm').insert({
