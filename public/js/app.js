@@ -143,6 +143,10 @@ function stampaLabel(selector = "#label-mp") {
     const target = labelEl?.querySelector('.barcode-mp') || labelEl;
     if (!target) return;
 
+    // Dimensioni etichetta
+    const LABEL_W = "110mm";
+    const LABEL_H = "60mm";
+
     html2canvas(target, {
         backgroundColor: "#ffffff",
         scale: 3,
@@ -159,35 +163,36 @@ function stampaLabel(selector = "#label-mp") {
             <html>
             <head>
                 <title>Stampa etichetta</title>
-
                 <style>
                     @page {
-                        size: 60mm 110mm;
+                        size: ${LABEL_W} ${LABEL_H};
                         margin: 0;
                     }
 
                     html, body {
                         margin: 0;
                         padding: 0;
-                        width: 60mm;
-                        height: 110mm;
+                        width: ${LABEL_W};
+                        height: ${LABEL_H};
+                        overflow: hidden;
                     }
 
                     body {
                         display: flex;
                         justify-content: center;
                         align-items: center;
-                        overflow: hidden;
                     }
 
                     img {
                         display: block;
-                        width: 60mm;
-                        height: 110mm;
+                        max-width: 100%;
+                        max-height: 100%;
+                        width: auto;
+                        height: auto;
+                        object-fit: contain;
                     }
                 </style>
             </head>
-
             <body>
                 <img id="label-image">
             </body>
@@ -197,13 +202,14 @@ function stampaLabel(selector = "#label-mp") {
         printWindow.document.close();
 
         const img = printWindow.document.getElementById("label-image");
-        img.src = canvas.toDataURL("image/png");
 
+        // onload va assegnato PRIMA di src, altrimenti può non scattare
         img.onload = () => {
             printWindow.focus();
+            printWindow.onafterprint = () => printWindow.close();
             printWindow.print();
-            printWindow.close();
         };
+        img.src = canvas.toDataURL("image/png");
     });
 }
 
