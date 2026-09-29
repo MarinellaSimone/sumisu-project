@@ -159,31 +159,34 @@ function stampaLabel(selector = "#label-mp") {
             <html>
             <head>
                 <title>Stampa etichetta</title>
+
                 <style>
                     @page {
+                        size: 110mm 60mm;
                         margin: 0;
                     }
 
                     html, body {
                         margin: 0;
                         padding: 0;
-                        width: 100%;
-                        height: 100%;
+                        width: 110mm;
+                        height: 60mm;
                     }
 
                     body {
                         display: flex;
                         justify-content: center;
-                        align-items: flex-start;
+                        align-items: center;
                     }
 
                     img {
                         display: block;
-                        max-width: 100%;
-                        height: auto;
+                        width: 110mm;
+                        height: 60mm;
                     }
                 </style>
             </head>
+
             <body>
                 <img id="label-image">
             </body>
