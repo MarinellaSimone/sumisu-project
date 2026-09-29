@@ -363,26 +363,32 @@ function addSMConsumo() {
 }
 function parseSMBarcodeValue(raw) {
   const v = String(raw || '').trim();
-  if (!v) return {};
+  if (!v || v.substring(16, 18) !== '10' || v.substring(26, 28) !== '17' || v.substring(36, 38) !== '37') return {};
+  const productCode = v.substring(18, 26);
+  const lotDate = v.substring(28, 36);
+  const quantity = Number(v.substring(38));
+  if (!/^\d{8}$/.test(productCode) || !/^\d{8}$/.test(lotDate) || !Number.isFinite(quantity)) return {};
   return {
     gtin: v.substring(2, 16),
-    productionDate: v.substring(18, 26),
-    expiryDate: v.substring(28, 36),
-    quantity: Number(v.substring(38) || 0),
+    productCode,
+    lotDate,
+    quantity,
   };
 }
 function addSMConsumoByScan() {
   const scan = val('sm-mp-scan');
   if (!scan) return showToast('Scannerizza o incolla un codice barcode', 'err');
   const parsed = parseSMBarcodeValue(scan);
-  if (!parsed.productionDate) return showToast('Codice barcode non riconosciuto', 'err');
-  const targetDate = parsed.productionDate;
-  const targetQty = parsed.quantity || 0;
+  if (!parsed.productCode) return showToast('Codice barcode non riconosciuto', 'err');
+  const targetDate = parsed.lotDate;
+  const targetQty = parsed.quantity;
+  const targetMaterialCode = parsed.productCode.substring(1);
   const lotto = (window.__mpLotti || []).find((l) => {
+    const materialCode = String(l.materiali?.codice_numerico || '').padStart(7, '0');
     const lotDate = String(l.codice_lotto || '').match(/MP-(\d{8})-/)?.[1];
     const ddtDate = l.ddt_data ? new Date(l.ddt_data).toISOString().slice(0, 10).replace(/-/g, '') : '';
-    const qtyOk = !targetQty || Number(l.quantita) === targetQty || Number(l.giacenza) === targetQty;
-    return qtyOk && (lotDate === targetDate || ddtDate === targetDate);
+    const qtyOk = Number(l.quantita) === targetQty || Number(l.giacenza) === targetQty;
+    return materialCode === targetMaterialCode && qtyOk && (lotDate === targetDate || ddtDate === targetDate);
   });
   if (!lotto) return showToast('Nessun lotto MP trovato per il codice scannerizzato', 'err');
   addSMConsumoById(lotto.id);
@@ -486,8 +492,8 @@ function findLotByBarcode(lotti, raw) {
   const v = String(raw || '').trim();
   if (!v) return null;
   const parsed = parseSMBarcodeValue(v);
-  if (!parsed.productionDate) return null;
-  const targetDate = parsed.productionDate;
+  if (!parsed.lotDate) return null;
+  const targetDate = parsed.lotDate;
   const targetQty = parsed.quantity || 0;
   return (lotti || []).find((l) => {
     const lotDate = String(l.codice_lotto || '').match(/(?:LT|SM|PF)-(\d{8})-/)?.[1];

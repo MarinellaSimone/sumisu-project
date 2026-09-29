@@ -251,7 +251,7 @@ router.delete('/articoli/:id', requireAdmin, wrap(async (req, res) => {
 router.get('/lotti-mp', wrap(async (req, res) => {
   const { data, error } = await supabase
     .from('lotti_mp')
-    .select('*,fornitori(ragione_sociale),materiali(codice,descrizione)')
+    .select('*,fornitori(ragione_sociale),materiali(codice,codice_numerico,descrizione)')
     .order('creato_il', { ascending: false });
   if (error) throw error;
   res.json(data);
