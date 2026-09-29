@@ -236,8 +236,6 @@ function salvaLabel(selector = "#label-mp") {
     });
 }
 
-z
-
 function generateEtichetta(r, date, selector = "#label-mp", type = "MP", options = {}) {
   const params = new URLSearchParams({
     date,
@@ -589,9 +587,6 @@ async function salvaPF(btn) {
   finally { loading(false); }
 }
 
-// ============================================================
-// MAGAZZINO
-// ============================================================
 const MAG_STATE = { tipo: 'mp', rows: [] };
 
 function applyMagFilter() {
