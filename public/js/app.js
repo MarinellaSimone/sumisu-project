@@ -209,6 +209,7 @@ function stampaLabel(selector = "#label-mp") {
             printWindow.onafterprint = () => printWindow.close();
             printWindow.print();
         };
+        //pippo
         img.src = canvas.toDataURL("image/png");
     });
 }
