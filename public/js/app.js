@@ -123,65 +123,72 @@ function chiudiLabel(selector) {
 function stampaLabel(selector = "#label-mp") {
     const labelEl = document.querySelector(selector);
     const target = labelEl?.querySelector('.barcode-mp') || labelEl;
-    if (!target) return;
+    if (!target) {
+        console.error("Etichetta non trovata:", selector);
+        return;
+    }
 
+    const LABEL_W = "110mm";
+    const LABEL_H = "60mm";
+
+    // 1. Apro la finestra SUBITO, dentro il click (evita il blocco popup)
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        alert("Il browser ha bloccato la finestra di stampa. Consenti i popup per questo sito.");
+        return;
+    }
+    printWindow.document.write('<p style="font-family:sans-serif">Preparazione etichetta…</p>');
+
+    // 2. Poi genero l'immagine
     html2canvas(target, {
         backgroundColor: "#ffffff",
         scale: 3,
+        useCORS: true,
         ignoreElements: (el) =>
             el.classList.contains("close-label") ||
             el.classList.contains("save-label") ||
             el.classList.contains("print-label")
     }).then(canvas => {
+        const dataUrl = canvas.toDataURL("image/png");
 
-        const printWindow = window.open('', '_blank');
-
+        printWindow.document.open();
         printWindow.document.write(`
             <!DOCTYPE html>
             <html>
             <head>
                 <title>Stampa etichetta</title>
                 <style>
-                    @page {
-                        margin: 0;
-                    }
-
+                    @page { size: ${LABEL_W} ${LABEL_H}; margin: 0; }
                     html, body {
-                        margin: 0;
-                        padding: 0;
-                        width: 100%;
-                        height: 100%;
+                        margin: 0; padding: 0;
+                        width: ${LABEL_W}; height: ${LABEL_H};
+                        overflow: hidden;
                     }
-
-                    body {
-                        display: flex;
-                        justify-content: center;
-                        align-items: flex-start;
-                    }
-
+                    body { display: flex; justify-content: center; align-items: center; }
                     img {
                         display: block;
-                        max-width: 100%;
-                        height: auto;
+                        max-width: 100%; max-height: 100%;
+                        object-fit: contain;
                     }
                 </style>
             </head>
-            <body>
-                <img id="label-image">
-            </body>
+            <body><img id="label-image"></body>
             </html>
         `);
-
         printWindow.document.close();
 
         const img = printWindow.document.getElementById("label-image");
-        img.src = canvas.toDataURL("image/png");
-
         img.onload = () => {
             printWindow.focus();
+            printWindow.onafterprint = () => printWindow.close();
             printWindow.print();
-            printWindow.close();
         };
+        img.src = dataUrl;
+
+    }).catch(err => {
+        console.error("Errore html2canvas:", err);
+        printWindow.close();
+        alert("Errore nella generazione dell'etichetta: " + err.message);
     });
 }
 
