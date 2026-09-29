@@ -120,6 +120,72 @@ function chiudiLabel(selector) {
     document.querySelector(selector).classList.remove("show");
 }
 
+function stampaLabel(selector = "#label-mp") {
+    const labelEl = document.querySelector(selector);
+    const target = labelEl?.querySelector('.barcode-mp') || labelEl;
+    if (!target) return;
+
+    html2canvas(target, {
+        backgroundColor: "#ffffff",
+        scale: 3,
+        ignoreElements: (el) =>
+            el.classList.contains("close-label") ||
+            el.classList.contains("save-label") ||
+            el.classList.contains("print-label")
+    }).then(canvas => {
+
+        const printWindow = window.open('', '_blank');
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Stampa etichetta</title>
+                <style>
+                    @page {
+                        margin: 0;
+                    }
+
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                        width: 100%;
+                        height: 100%;
+                    }
+
+                    body {
+                        display: flex;
+                        justify-content: center;
+                        align-items: flex-start;
+                    }
+
+                    img {
+                        display: block;
+                        max-width: 100%;
+                        height: auto;
+                    }
+                </style>
+            </head>
+            <body>
+                <img id="label-image">
+            </body>
+            </html>
+        `);
+
+        printWindow.document.close();
+
+        const img = printWindow.document.getElementById("label-image");
+        img.src = canvas.toDataURL("image/png");
+
+        img.onload = () => {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        };
+    });
+}
+
+
 function salvaLabel(selector = "#label-mp") {
     const labelEl = document.querySelector(selector);
     const target = labelEl?.querySelector('.barcode-mp') || labelEl;
