@@ -128,8 +128,9 @@ function stampaLabel(selector = "#label-mp") {
         return;
     }
 
-    const LABEL_W = "110mm";
-    const LABEL_H = "60mm";
+    // Dimensioni foglio (verticale)
+    const LABEL_W = "60mm";
+    const LABEL_H = "110mm";
 
     // 1. Apro la finestra SUBITO, dentro il click (evita il blocco popup)
     const printWindow = window.open('', '_blank');
@@ -139,7 +140,7 @@ function stampaLabel(selector = "#label-mp") {
     }
     printWindow.document.write('<p style="font-family:sans-serif">Preparazione etichetta…</p>');
 
-    // 2. Poi genero l'immagine
+    // 2. Genero l'immagine dell'etichetta
     html2canvas(target, {
         backgroundColor: "#ffffff",
         scale: 3,
@@ -149,8 +150,19 @@ function stampaLabel(selector = "#label-mp") {
             el.classList.contains("save-label") ||
             el.classList.contains("print-label")
     }).then(canvas => {
-        const dataUrl = canvas.toDataURL("image/png");
 
+        // 3. Ruoto l'immagine di 90° per adattarla al foglio verticale
+        const rotated = document.createElement("canvas");
+        rotated.width = canvas.height;
+        rotated.height = canvas.width;
+        const ctx = rotated.getContext("2d");
+        ctx.translate(rotated.width / 2, rotated.height / 2);
+        ctx.rotate(Math.PI / 2);   // senso orario; usa -Math.PI / 2 per antiorario
+        ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+
+        const dataUrl = rotated.toDataURL("image/png");
+
+        // 4. Scrivo la pagina di stampa
         printWindow.document.open();
         printWindow.document.write(`
             <!DOCTYPE html>
@@ -158,25 +170,38 @@ function stampaLabel(selector = "#label-mp") {
             <head>
                 <title>Stampa etichetta</title>
                 <style>
-                    @page { size: ${LABEL_W} ${LABEL_H}; margin: 0; }
+                    @page {
+                        size: ${LABEL_W} ${LABEL_H};
+                        margin: 0;
+                    }
                     html, body {
-                        margin: 0; padding: 0;
-                        width: ${LABEL_W}; height: ${LABEL_H};
+                        margin: 0;
+                        padding: 0;
+                        width: ${LABEL_W};
+                        height: ${LABEL_H};
                         overflow: hidden;
                     }
-                    body { display: flex; justify-content: center; align-items: center; }
+                    body {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                    }
                     img {
                         display: block;
-                        max-width: 100%; max-height: 100%;
+                        max-width: 100%;
+                        max-height: 100%;
                         object-fit: contain;
                     }
                 </style>
             </head>
-            <body><img id="label-image"></body>
+            <body>
+                <img id="label-image">
+            </body>
             </html>
         `);
         printWindow.document.close();
 
+        // 5. Stampo quando l'immagine è caricata
         const img = printWindow.document.getElementById("label-image");
         img.onload = () => {
             printWindow.focus();
