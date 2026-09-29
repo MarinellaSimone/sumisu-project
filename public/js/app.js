@@ -162,27 +162,28 @@ function stampaLabel(selector = "#label-mp") {
 
                 <style>
                     @page {
-                        size: 110mm 60mm;
+                        size: 60mm 110mm;
                         margin: 0;
                     }
 
                     html, body {
                         margin: 0;
                         padding: 0;
-                        width: 110mm;
-                        height: 60mm;
+                        width: 60mm;
+                        height: 110mm;
                     }
 
                     body {
                         display: flex;
                         justify-content: center;
                         align-items: center;
+                        overflow: hidden;
                     }
 
                     img {
                         display: block;
-                        width: 110mm;
-                        height: 60mm;
+                        width: 60mm;
+                        height: 110mm;
                     }
                 </style>
             </head>
