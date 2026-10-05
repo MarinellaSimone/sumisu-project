@@ -131,10 +131,11 @@ router.get("/generate", async (req, res) => {
 
     } catch (error) {
         console.error(error);
-
+        
         res.status(500).json({
             error: "Barcode generation failed" + (error.message ? `: ${error.message}` : "")
         });
+        
     }
 });
 
