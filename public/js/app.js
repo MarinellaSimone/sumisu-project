@@ -111,8 +111,8 @@ async function loadMP() {
     fillSelect('mp-materiale', mat.map((m) => ({ v: m.id, t: `${m.codice} · ${m.descrizione}` })));
     if (!document.getElementById('mp-data').value) document.getElementById('mp-data').value = today();
     document.getElementById('mp-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td>${esc(l.ddt_numero || '—')}</td></tr>`
-    ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun ricevimento</p></div></td></tr>';
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td>${esc(l.ddt_numero || '—')}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('mp','${esc(l.id)}',this)"><i class="ti ti-trash"></i>Elimina</button></td></tr>`
+    ).join('') || '<tr><td colspan="7"><div class="empty"><p>Nessun ricevimento</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
 
@@ -351,8 +351,8 @@ async function loadSM() {
     if (!document.getElementById('sm-data').value) document.getElementById('sm-data').value = today();
     smConsumi = []; renderSMConsumi();
     document.getElementById('sm-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td></tr>`
-    ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessuna lavorazione</p></div></td></tr>';
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('sm','${esc(l.id)}',this)"><i class="ti ti-trash"></i>Elimina</button></td></tr>`
+    ).join('') || '<tr><td colspan="6"><div class="empty"><p>Nessuna lavorazione</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
 
@@ -521,8 +521,8 @@ async function loadPF() {
     if (!document.getElementById('pf-data').value) document.getElementById('pf-data').value = today();
     pfConsumiMP = []; pfConsumiSM = []; renderPFConsumi();
     document.getElementById('pf-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td></tr>`
-    ).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessun ordine</p></div></td></tr>';
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('pf','${esc(l.id)}',this)"><i class="ti ti-trash"></i>Elimina</button></td></tr>`
+    ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun ordine</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
 function addPFConsumoMPById(id) {
@@ -649,6 +649,25 @@ async function loadMag(tipo) {
     MAG_STATE.tipo = tipo;
     MAG_STATE.rows = await api('/magazzino/' + tipo);
     applyMagFilter();
+  } catch (e) { showToast(e.message, 'err'); }
+}
+
+async function eliminaLottoStorico(tipo, id, button) {
+  const codice = button.closest('tr')?.querySelector('.mono')?.textContent || 'selezionato';
+  if (!confirm(`Eliminare definitivamente il lotto "${codice}"? Questa operazione non può essere annullata.`)) return;
+  try {
+    await api(`/lotti-${tipo}/${id}/record`, { method: 'DELETE' });
+    showToast('Lotto eliminato');
+    const tbody = button.closest('tr')?.parentElement;
+    button.closest('tr')?.remove();
+    if (tbody && !tbody.querySelector('tr')) {
+      const emptyRows = {
+        mp: '<tr><td colspan="7"><div class="empty"><p>Nessun ricevimento</p></div></td></tr>',
+        sm: '<tr><td colspan="6"><div class="empty"><p>Nessuna lavorazione</p></div></td></tr>',
+        pf: '<tr><td colspan="5"><div class="empty"><p>Nessun ordine</p></div></td></tr>',
+      };
+      tbody.innerHTML = emptyRows[tipo];
+    }
   } catch (e) { showToast(e.message, 'err'); }
 }
 
