@@ -111,7 +111,7 @@ async function loadMP() {
     fillSelect('mp-materiale', mat.map((m) => ({ v: m.id, t: `${m.codice} · ${m.descrizione}` })));
     if (!document.getElementById('mp-data').value) document.getElementById('mp-data').value = today();
     document.getElementById('mp-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td>${esc(l.ddt_numero || '—')}</td></tr>`
     ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun ricevimento</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
