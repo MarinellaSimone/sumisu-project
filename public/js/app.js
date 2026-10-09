@@ -148,7 +148,11 @@ function stampaLabel(selector = "#label-mp") {
         ignoreElements: (el) =>
             el.classList.contains("close-label") ||
             el.classList.contains("save-label") ||
-            el.classList.contains("print-label")
+            el.classList.contains("print-label"),
+        onclone: (document) => {
+            document.querySelectorAll(".close-label, .save-label, .print-label")
+                .forEach((button) => button.remove());
+        }
     }).then(canvas => {
 
         // 3. Ruoto l'immagine di 90° per adattarla al foglio verticale
@@ -226,7 +230,14 @@ function salvaLabel(selector = "#label-mp") {
     html2canvas(target, {
         backgroundColor: "#ffffff",
         scale: 3,
-        ignoreElements: (el) => el.classList.contains("close-label") || el.classList.contains("save-label")
+        ignoreElements: (el) =>
+            el.classList.contains("close-label") ||
+            el.classList.contains("save-label") ||
+            el.classList.contains("print-label"),
+        onclone: (document) => {
+            document.querySelectorAll(".close-label, .save-label, .print-label")
+                .forEach((button) => button.remove());
+        }
     }).then(canvas => {
         const link = document.createElement("a");
         const fileName = target.querySelector('.footer-mp span')?.textContent?.replace(/\D/g, '') || 'label';
@@ -271,8 +282,6 @@ function generateEtichetta(r, date, selector = "#label-mp", type = "MP", options
                 closeBtn.setAttribute('aria-label', 'Chiudi');
                 closeBtn.textContent = '×';
                 closeBtn.onclick = () => chiudiLabel(selector);
-
-                labelBox.append(saveBtn, closeBtn);
 
                 const printBtn = document.createElement('button');
                 printBtn.className = 'print-label';
