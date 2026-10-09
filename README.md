@@ -110,6 +110,45 @@ naviga questi legami in entrambe le direzioni:
 - da un lotto **MP** → verso gli SM/PF che lo hanno usato
 - da un lotto **PF** → verso SM, MP e il DDT di spedizione
 
+## Magazzino e storico lotti
+Magazzino e storico hanno scopi diversi:
+
+- **Magazzino** mostra soltanto i lotti MP, SM e PF con giacenza maggiore di
+  zero. La modifica della giacenza aggiorna anche la quantità registrata e
+  ricalcola lo stato del lotto.
+- Il comando **Elimina** nel Magazzino non cancella il record: porta quantità
+  e giacenza a zero e imposta lo stato a `Esaurito` per MP/SM o `Completato`
+  per PF. Il lotto quindi non appare più nel Magazzino, ma resta nello storico
+  e nella tracciabilità.
+- Gli storici **Ricevimenti MP**, **Lavorazioni SM** e **Ordini attivi PF**
+  mostrano i record creati, compresi quelli con giacenza zero. Il comando
+  **Elimina** in queste tabelle chiede conferma e cancella il record in modo
+  permanente, ma solo se non è collegato ad altri record di tracciabilità.
+
+La cancellazione dallo storico viene impedita quando il lotto è referenziato:
+
+- un **MP** non si elimina se è stato usato in una lavorazione SM o in un
+  ordine PF;
+- un **SM** non si elimina se ha consumi MP registrati o se è stato usato in
+  un ordine PF;
+- un **PF** non si elimina se ha consumi MP/SM registrati o compare in una
+  riga di spedizione.
+
+Per esempio, se una lavorazione **SM è collegata a un MP**, il legame è
+registrato in `sm_consumi_mp` e l'eliminazione dello SM dallo storico viene
+bloccata per conservare la tracciabilità. Analogamente, l'MP non può essere
+cancellato mentre risulta usato da quello SM. L'app mostra un messaggio di
+errore: non ripetere l'operazione e non tentare di aggirare il blocco
+cancellando direttamente le righe dal database.
+
+Se il collegamento è corretto, lasciare il lotto nello storico; per escluderlo
+dalle giacenze usare l'azione del Magazzino, che lo porta a quantità e giacenza
+zero senza cancellarne la storia. Se il collegamento è errato (per esempio
+consumo registrato sul lotto sbagliato), chiedere a un amministratore di
+correggere il legame e riallineare quantità e giacenze coinvolte prima di
+riprovare. Al momento non c'è una funzione nell'interfaccia per scollegare un
+consumo o ripristinare automaticamente la giacenza dopo una cancellazione.
+
 ## Note di produzione
 - Le sessioni sono in memoria (ok per singola istanza/demo). Per il deploy usa
   `connect-pg-simple` verso il Postgres di Supabase (dipendenza già inclusa).

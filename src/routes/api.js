@@ -487,6 +487,45 @@ router.delete('/lotti-pf/:id', wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+async function eliminaLottoStorico(tabella, id, collegamenti, messaggio, res) {
+  const verifiche = await Promise.all(collegamenti.map(({ tabella, colonna }) =>
+    supabase.from(tabella).select('id', { count: 'exact', head: true }).eq(colonna, id)
+  ));
+  for (const { error } of verifiche) {
+    if (error) throw error;
+  }
+  if (verifiche.some(({ count }) => count > 0)) {
+    return res.status(409).json({ error: messaggio });
+  }
+
+  const { data, error } = await supabase.from(tabella).delete().eq('id', id).select('id').maybeSingle();
+  if (error) throw error;
+  if (!data) return res.status(404).json({ error: 'Lotto non trovato' });
+  res.json({ ok: true });
+}
+
+router.delete('/lotti-mp/:id/record', wrap(async (req, res) => {
+  await eliminaLottoStorico('lotti_mp', req.params.id, [
+    { tabella: 'sm_consumi_mp', colonna: 'lotto_mp_id' },
+    { tabella: 'pf_consumi_mp', colonna: 'lotto_mp_id' },
+  ], 'Il lotto MP è collegato a lavorazioni o ordini e non può essere eliminato.', res);
+}));
+
+router.delete('/lotti-sm/:id/record', wrap(async (req, res) => {
+  await eliminaLottoStorico('lotti_sm', req.params.id, [
+    { tabella: 'sm_consumi_mp', colonna: 'lotto_sm_id' },
+    { tabella: 'pf_consumi_sm', colonna: 'lotto_sm_id' },
+  ], 'Il lotto SM è collegato a lavorazioni o ordini e non può essere eliminato.', res);
+}));
+
+router.delete('/lotti-pf/:id/record', wrap(async (req, res) => {
+  await eliminaLottoStorico('lotti_pf', req.params.id, [
+    { tabella: 'pf_consumi_mp', colonna: 'lotto_pf_id' },
+    { tabella: 'pf_consumi_sm', colonna: 'lotto_pf_id' },
+    { tabella: 'spedizioni_righe', colonna: 'lotto_pf_id' },
+  ], 'Il lotto PF è collegato a consumi o spedizioni e non può essere eliminato.', res);
+}));
+
 // ============================================================
 // SPEDIZIONI PF  (solo admin)
 // ============================================================
