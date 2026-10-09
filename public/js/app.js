@@ -957,10 +957,10 @@ async function addCliente(btn) {
 async function addMateriale(btn) {
   const codice = val('am-cod').trim(), codice_numerico = val('am-cod-num').trim(), descrizione = val('am-desc');
   if (!codice || !descrizione) return showToast('Codice e descrizione obbligatori', 'err');
-  if (!/^[A-Za-z0-9]+$/.test(codice)) return showToast('Il codice deve contenere solo caratteri alfanumerici', 'err');
+  if (!/^[A-Za-z0-9/\\]+$/.test(codice)) return showToast('Il codice deve contenere solo caratteri alfanumerici', 'err');
   if (!/^[0-9]{7}$/.test(codice_numerico)) return showToast('Il codice numerico deve contenere 7 cifre', 'err');
   try {
-    await api('/materiali', { method: 'POST', body: { codice, codice_numerico, descrizione, tipo: "MP", unita_misura: val('am-um'), soglia_minima: 0 } });
+    await api('/materiali', { method: 'POST', body: { codice, codice_numerico, descrizione, tipo: "MP", unita_misura: "kg", soglia_minima: 0 } });
     showToast('Materiale aggiunto');
     ['am-cod', 'am-cod-num', 'am-desc'].forEach((id) => (document.getElementById(id).value = ''));
     loadAna();

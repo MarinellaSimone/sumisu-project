@@ -56,7 +56,7 @@ create table if not exists materiali (
   soglia_minima numeric default 0,
   creato_il   timestamptz not null default now(),
   codice_numerico text not null,
-  constraint materiali_codice_check check (codice ~ '^[A-Za-z0-9]$'),
+  constraint materiali_codice_check check (codice ~ '^[A-Za-z0-9]/\\$'),
   constraint materiali_codice_numerico_check check (codice_numerico ~ '^[0-9]{7}$')
 );
 

@@ -164,7 +164,7 @@ router.get('/tipologie', wrap(async (req, res) => {
 router.post('/materiali', requireAdmin, wrap(async (req, res) => {
   const { codice, codice_numerico, descrizione, tipo, unita_misura, soglia_minima } = req.body;
   if (!codice || !descrizione) return res.status(400).json({ error: 'Codice e descrizione obbligatori' });
-  if (!/^[A-Za-z0-9]+$/.test(String(codice || ''))) return res.status(400).json({ error: 'Il codice deve contenere solo caratteri alfanumerici' });
+  if (!/^[A-Za-z0-9/\\]+$/.test(String(codice || ''))) return res.status(400).json({ error: 'Il codice deve contenere solo caratteri alfanumerici' });
   if (!/^[0-9]{7}$/.test(String(codice_numerico || ''))) return res.status(400).json({ error: 'Il codice numerico deve contenere 7 cifre' });
 
   const normalizedCode = String(codice).trim().toUpperCase();
