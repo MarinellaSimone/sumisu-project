@@ -118,6 +118,15 @@ create table if not exists sm_consumi_mp (
   unita_misura text
 );
 
+-- Consumo SM dentro una lavorazione SM (tracciabilità a monte)
+create table if not exists sm_consumi_sm (
+  id                  uuid primary key default gen_random_uuid(),
+  lotto_sm_id         uuid references lotti_sm(id) on delete cascade,
+  lotto_sm_origine_id uuid references lotti_sm(id),
+  quantita            numeric not null default 0,
+  unita_misura        text
+);
+
 -- ---------- LOTTI PF (prodotti finiti) ----------
 create table if not exists lotti_pf (
   id            uuid primary key default gen_random_uuid(),
@@ -178,3 +187,5 @@ create index if not exists idx_lotti_mp_codice on lotti_mp(codice_lotto);
 create index if not exists idx_lotti_sm_codice on lotti_sm(codice_lotto);
 create index if not exists idx_lotti_pf_codice on lotti_pf(codice_lotto);
 create index if not exists idx_spedizioni_ddt on spedizioni(ddt_numero);
+create index if not exists idx_sm_consumi_sm_lotto on sm_consumi_sm(lotto_sm_id);
+create index if not exists idx_sm_consumi_sm_origine on sm_consumi_sm(lotto_sm_origine_id);

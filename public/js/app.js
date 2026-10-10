@@ -111,7 +111,7 @@ async function loadMP() {
     fillSelect('mp-materiale', mat.map((m) => ({ v: m.id, t: `${m.codice} · ${m.descrizione}` })));
     if (!document.getElementById('mp-data').value) document.getElementById('mp-data').value = today();
     document.getElementById('mp-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td>${esc(l.ddt_numero || '—')}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('mp','${esc(l.id)}',this)"><i class="ti ti-trash"></i>Elimina</button></td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td>${esc(l.ddt_numero || '—')}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('mp','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></td></tr>`
     ).join('') || '<tr><td colspan="7"><div class="empty"><p>Nessun ricevimento</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -327,7 +327,9 @@ async function salvaMP(btn) {
 // ============================================================
 let smTipo = 'int';
 let smConsumi = [];
+let smConsumiSM = [];
 let smLotAddMode = 'manual';
+let smSourceAddMode = 'manual';
 function setSMTipo(t) {
   smTipo = t;
   document.getElementById('sm-int').classList.toggle('on', t === 'int');
@@ -341,17 +343,26 @@ function smLotAddTab(mode, btn) {
   document.getElementById('sm-mp-manual').style.display = mode === 'manual' ? 'block' : 'none';
   document.getElementById('sm-mp-scanner').style.display = mode === 'scanner' ? 'block' : 'none';
 }
+function smSourceTab(mode, btn) {
+  smSourceAddMode = mode;
+  document.querySelectorAll('#sm-sm-add-tabs .tab-btn').forEach((b) => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  document.getElementById('sm-sm-manual').style.display = mode === 'manual' ? 'block' : 'none';
+  document.getElementById('sm-sm-scanner').style.display = mode === 'scanner' ? 'block' : 'none';
+}
 
 async function loadSM() {
   try {
     const [forn, mpLotti, lotti] = await Promise.all([api('/fornitori'), api('/lotti-mp'), api('/lotti-sm')]);
     fillSelect('sm-fornitore', forn.map((f) => ({ v: f.id, t: f.ragione_sociale })), true, '— nessuno —');
     window.__mpLotti = mpLotti;
+    window.__smLotti = lotti;
     fillSelect('sm-mp-sel', mpLotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto MP…');
+    fillSelect('sm-sm-sel', lotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto SM…');
     if (!document.getElementById('sm-data').value) document.getElementById('sm-data').value = today();
-    smConsumi = []; renderSMConsumi();
+    smConsumi = []; smConsumiSM = []; renderSMConsumi(); renderSMConsumiSM();
     document.getElementById('sm-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('sm','${esc(l.id)}',this)"><i class="ti ti-trash"></i>Elimina</button></td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('sm','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></td></tr>`
     ).join('') || '<tr><td colspan="6"><div class="empty"><p>Nessuna lavorazione</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -369,6 +380,28 @@ function addSMConsumo() {
   const id = val('sm-mp-sel');
   if (!id) return showToast('Seleziona un lotto MP', 'err');
   addSMConsumoById(id);
+}
+function addSMConsumoSMById(id) {
+  if (!id) return;
+  if (smConsumiSM.find((c) => c.lotto_sm_origine_id === id)) return showToast('Lotto già aggiunto', 'err');
+  const lotto = (window.__smLotti || []).find((l) => l.id === id);
+  if (!lotto) return showToast('Lotto SM non trovato', 'err');
+  if (Number(lotto.giacenza) <= 0) return showToast('Lotto SM senza giacenza disponibile', 'err');
+  smConsumiSM.push({ lotto_sm_origine_id: id, codice: lotto.codice_lotto, desc: lotto.materiali?.descrizione, disp: lotto.giacenza, um: lotto.unita_misura, quantita: 0 });
+  renderSMConsumiSM();
+}
+function addSMConsumoSM() {
+  const id = val('sm-sm-sel');
+  if (!id) return showToast('Seleziona un lotto SM', 'err');
+  addSMConsumoSMById(id);
+}
+function addSMConsumoSMByScan() {
+  const scan = val('sm-sm-scan');
+  if (!scan) return showToast('Scannerizza o incolla un codice barcode', 'err');
+  const lotto = findLotByBarcode(window.__smLotti, scan);
+  if (!lotto) return showToast('Nessun lotto SM trovato per il codice scannerizzato', 'err');
+  addSMConsumoSMById(lotto.id);
+  document.getElementById('sm-sm-scan').value = '';
 }
 function parseSMBarcodeValue(raw) {
   const v = String(raw || '').trim();
@@ -420,6 +453,11 @@ function renderSMConsumi() {
     `<div class="mp-row">${pill('MP', 'pill-verde')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" min="0" max="${c.disp}" value="${c.quantita}" onchange="setQuantitaDisponibile(smConsumi,${i},this.value,renderSMConsumi)" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="smConsumi.splice(${i},1);renderSMConsumi()">×</button></div>`
   ).join('');
 }
+function renderSMConsumiSM() {
+  document.getElementById('sm-sm-rows').innerHTML = smConsumiSM.map((c, i) =>
+    `<div class="mp-row">${pill('SM', 'pill-viola')}<div style="flex:1;min-width:120px;"><div class="mono">${esc(c.codice)}</div><div style="font-size:11px;color:var(--grigio);">${esc(c.desc || '')} · ${fmt(c.disp)} ${esc(c.um)} disp.</div></div><input class="fi" type="number" min="0" max="${c.disp}" value="${c.quantita}" onchange="setQuantitaDisponibile(smConsumiSM,${i},this.value,renderSMConsumiSM)" style="width:80px;text-align:right;padding:8px 10px;"><span style="font-size:12px;color:var(--grigio);">${esc(c.um)}</span><button style="background:none;border:none;color:var(--grigio);font-size:20px;cursor:pointer;" onclick="smConsumiSM.splice(${i},1);renderSMConsumiSM()">×</button></div>`
+  ).join('');
+}
 
 function getNextMaterialCodeNumber(materiali, tipo = 'MP') {
   const usedCodes = (materiali || [])
@@ -460,6 +498,7 @@ async function createSMMaterialFromForm() {
 async function salvaSM(btn) {
   const tipo = val('sm-tipo').trim();
   const qty = val('sm-qty');
+  if (qty <= 0) return showToast('Quantita prodotta non puo essere zero', 'err');
   if (!tipo) return showToast('Inserisci il tipo di semilavorato', 'err');
   loading(true, 'Registrazione SM…');
   try {
@@ -469,7 +508,8 @@ async function salvaSM(btn) {
       fornitore_sm_id: smTipo === 'ext' ? (val('sm-fornitore') || null) : null,
       ddt_numero: val('sm-ddt'), ddt_data: val('sm-ddt-data'),
       quantita: qty, unita_misura: val('sm-um'), data_lavorazione: val('sm-data'), note: val('sm-note'),
-      consumi: smConsumi.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
+      consumi_mp: smConsumi.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
+      consumi_sm: smConsumiSM.map((c) => ({ lotto_sm_origine_id: c.lotto_sm_origine_id, quantita: c.quantita, unita_misura: c.um })),
     }});
     generateEtichetta(r, r.data_lavorazione, '#label-sm', 'SM', {
       foodContactSymbol: document.getElementById('sm-food-contact-symbol').checked,
@@ -479,7 +519,7 @@ async function salvaSM(btn) {
     ['sm-note'].forEach((id) => (document.getElementById(id).value = ''));
     document.getElementById('sm-qty').value = 0;
     document.getElementById('sm-tipo').value = '';
-    smConsumi = []; renderSMConsumi();
+    smConsumi = []; smConsumiSM = []; renderSMConsumi(); renderSMConsumiSM();
     loadSM();
   } catch (e) { showToast(e.message, 'err'); }
   finally { loading(false); }
@@ -521,7 +561,7 @@ async function loadPF() {
     if (!document.getElementById('pf-data').value) document.getElementById('pf-data').value = today();
     pfConsumiMP = []; pfConsumiSM = []; renderPFConsumi();
     document.getElementById('pf-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('pf','${esc(l.id)}',this)"><i class="ti ti-trash"></i>Elimina</button></td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('pf','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></td></tr>`
     ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun ordine</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -1008,21 +1048,19 @@ async function doTrace() {
   try {
     const c = await api('/traccia/' + encodeURIComponent(v));
     document.getElementById('trace-title').textContent = v;
-    const chain = [];
-    if (c.mp.length) chain.push({ t: 'MP', c: c.mp[0].codice, bg: 'var(--verdel)', tx: 'var(--violad)', bd: 'var(--verdeld)' });
-    if (c.sm.length) chain.push({ t: 'SM', c: c.sm[0].codice, bg: 'var(--violal)', tx: 'var(--viola)', bd: '#c5bfee' });
-    if (c.pf.length) chain.push({ t: 'PF', c: c.pf[0].codice, bg: 'var(--amberl)', tx: 'var(--amber)', bd: '#fac775' });
-    if (c.ddt.length) chain.push({ t: 'DDT', c: c.ddt[0].ddt, bg: 'var(--verdel)', tx: 'var(--violad)', bd: 'var(--verdeld)' });
-    document.getElementById('trace-chain').innerHTML = chain.map((n, i) =>
-      (i > 0 ? '<span style="color:#ccc;font-size:18px;">→</span>' : '') +
-      `<div style="font-size:11px;font-weight:700;padding:7px 12px;border-radius:20px;border:1.5px solid ${n.bd};background:${n.bg};color:${n.tx};font-family:'SF Mono',monospace;"><span style="opacity:.6;font-size:10px;margin-right:4px;">${n.t}</span>${esc(n.c)}</div>`
-    ).join('') || '<span style="color:var(--grigio);font-size:13px;">Nessuna catena trovata per questo codice.</span>';
+    document.getElementById('trace-chain').innerHTML = c.passaggi.map((r) =>
+      `<tr><td><span class="pill ${r.da.tipo === 'MP' ? 'pill-verde' : r.da.tipo === 'SM' ? 'pill-viola' : 'pill-grigio'}">${esc(r.da.tipo)}</span> <span class="mono">${esc(r.da.codice)}</span>${r.da.descrizione ? `<div style="font-size:11px;color:var(--grigio);">${esc(r.da.descrizione)}</div>` : ''}</td><td><span class="pill ${r.a.tipo === 'PF' ? 'pill-grigio' : 'pill-viola'}">${esc(r.a.tipo)}</span> <span class="mono">${esc(r.a.codice)}</span>${r.a.descrizione ? `<div style="font-size:11px;color:var(--grigio);">${esc(r.a.descrizione)}</div>` : ''}</td><td>${fmt(r.quantita)} ${esc(r.unita_misura || '')}</td></tr>`
+    ).join('') || '<tr><td colspan="3" style="color:#bbb;">Nessun collegamento trovato per questo lotto.</td></tr>';
 
     document.getElementById('trace-mp').innerHTML = c.mp.map((r) => `<tr><td class="mono">${esc(r.codice)}</td><td>${esc(r.materiale || '')}</td><td>${esc(r.fornitore || '')}</td></tr>`).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
     document.getElementById('trace-sm').innerHTML = c.sm.map((r) => `<tr><td class="mono">${esc(r.codice)}</td><td>${esc(r.tipo || '')}</td><td>${pill(r.lav === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td></tr>`).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
     document.getElementById('trace-pf').innerHTML = c.pf.map((r) => {
-      const ddt = c.ddt[0] || {};
-      return `<tr><td class="mono">${esc(r.codice)}</td><td class="mono">${esc(ddt.ddt || '—')}</td><td>${esc(ddt.cliente || '—')}</td></tr>`;
+      const destinazioni = c.passaggi.filter((passaggio) => passaggio.da.tipo === 'PF'
+        && passaggio.da.codice === r.codice && passaggio.a.tipo === 'DDT');
+      if (!destinazioni.length) return `<tr><td class="mono">${esc(r.codice)}</td><td class="mono">—</td><td>—</td></tr>`;
+      return destinazioni.map((passaggio) =>
+        `<tr><td class="mono">${esc(r.codice)}</td><td class="mono">${esc(passaggio.a.codice)}</td><td>${esc(passaggio.a.descrizione || '—')}</td></tr>`
+      ).join('');
     }).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
 
     document.getElementById('trace-res').style.display = 'block';
