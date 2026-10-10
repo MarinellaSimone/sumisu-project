@@ -85,6 +85,7 @@ create table if not exists lotti_mp (
   giacenza      numeric not null default 0,  -- residuo disponibile
   n_pedane      int default 0,
   note          text,
+  label_options jsonb not null default '{}'::jsonb,
   stato         text not null default 'Ok' check (stato in ('Ok','Riserva','Soglia','Esaurito')),
   creato_da     uuid references utenti(id),
   creato_il     timestamptz not null default now()
@@ -104,6 +105,7 @@ create table if not exists lotti_sm (
   giacenza      numeric not null default 0,
   data_lavorazione date,
   note          text,
+  label_options jsonb not null default '{}'::jsonb,
   stato         text not null default 'Disponibile' check (stato in ('Disponibile','In uso','Esaurito')),
   creato_da     uuid references utenti(id),
   creato_il     timestamptz not null default now()
@@ -138,6 +140,7 @@ create table if not exists lotti_pf (
   data_produzione date,
   stato         text not null default 'In corso' check (stato in ('In corso','Attesa','Completato','Pronto','Spedito')),
   note          text,
+  label_options jsonb not null default '{}'::jsonb,
   creato_da     uuid references utenti(id),
   creato_il     timestamptz not null default now()
 );

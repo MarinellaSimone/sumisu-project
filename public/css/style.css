@@ -322,6 +322,8 @@ td{padding:11px 10px;border-bottom:1px solid var(--bdr);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
 tr:hover td{background:var(--verdel);}
 .mono{font-family:'SF Mono',monospace;font-size:11px;}
+.history-actions{display:flex;flex-wrap:nowrap;gap:6px;white-space:nowrap;}
+.history-actions .btn-sm{padding:6px 8px;}
 
 /* FORM */
 .fr{margin-bottom:14px;}
