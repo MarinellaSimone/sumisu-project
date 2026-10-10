@@ -583,177 +583,380 @@ router.post('/spedizioni', requireAdmin, wrap(async (req, res) => {
 // ============================================================
 // TRACCIABILITÀ (solo admin)
 // ============================================================
+
 router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
   const codice = req.params.codice.trim();
+
   const tables = {
-    MP: { table: 'lotti_mp', select: '*,fornitori(ragione_sociale),materiali(descrizione)' },
-    SM: { table: 'lotti_sm', select: '*,materiali(codice,descrizione)' },
-    PF: { table: 'lotti_pf', select: '*,articoli_pf(descrizione)' },
+    MP: {
+      table: 'lotti_mp',
+      select: '*,fornitori(ragione_sociale),materiali(descrizione)',
+    },
+    SM: {
+      table: 'lotti_sm',
+      select: '*,materiali(codice,descrizione)',
+    },
+    PF: {
+      table: 'lotti_pf',
+      select: '*,articoli_pf(descrizione)',
+    },
   };
+
+  // Nodi e relazioni della catena.
   const legami = new Map();
   const visitati = new Set();
   const coda = [];
 
   async function caricaLotto(tipo, id) {
     const config = tables[tipo];
-    const { data, error } = await supabase.from(config.table).select(config.select).eq('id', id).maybeSingle();
+    if (!config) return null;
+
+    const { data, error } = await supabase
+      .from(config.table)
+      .select(config.select)
+      .eq('id', id)
+      .maybeSingle();
+
     if (error) throw error;
     return data;
   }
 
   async function cercaPerCodice(tipo) {
     const config = tables[tipo];
-    const { data, error } = await supabase.from(config.table).select(config.select).eq('codice_lotto', codice).maybeSingle();
+
+    const { data, error } = await supabase
+      .from(config.table)
+      .select(config.select)
+      .eq('codice_lotto', codice)
+      .maybeSingle();
+
     if (error) throw error;
     return data;
   }
 
   function aggiungiLotto(tipo, lotto) {
     if (!lotto) return null;
+
     const key = `${tipo}:${lotto.id}`;
+
     if (!legami.has(key)) {
-      const descrizione = lotto.materiali?.descrizione || lotto.articoli_pf?.descrizione || '';
-      legami.set(key, { id: lotto.id, tipo, codice: lotto.codice_lotto, descrizione, record: lotto });
+      const descrizione =
+        lotto.materiali?.descrizione ||
+        lotto.articoli_pf?.descrizione ||
+        '';
+
+      legami.set(key, {
+        id: lotto.id,
+        tipo,
+        codice: lotto.codice_lotto,
+        descrizione,
+        record: lotto,
+      });
+
       coda.push(key);
     }
+
     return key;
   }
 
-  async function aggiungiRelazione(tipoOrigine, idOrigine, tipoDestinazione, idDestinazione, quantita, unita_misura) {
-    const [origine, destinazione] = await Promise.all([
-      caricaLotto(tipoOrigine, idOrigine),
-      caricaLotto(tipoDestinazione, idDestinazione),
+  // Registra una relazione nella direzione:
+  // lotto prodotto -> lotto componente utilizzato.
+  async function aggiungiRelazione(
+    tipoProdotto,
+    idProdotto,
+    tipoComponente,
+    idComponente,
+    quantita,
+    unita_misura
+  ) {
+    const [prodotto, componente] = await Promise.all([
+      caricaLotto(tipoProdotto, idProdotto),
+      caricaLotto(tipoComponente, idComponente),
     ]);
-    if (!origine || !destinazione) return;
-    const da = aggiungiLotto(tipoOrigine, origine);
-    const a = aggiungiLotto(tipoDestinazione, destinazione);
-    const key = `${da}>${a}`;
-    if (!legami.has(key)) {
-      legami.set(key, {
-        da, a,
+
+    if (!prodotto || !componente) return;
+
+    const prodottoKey = aggiungiLotto(tipoProdotto, prodotto);
+    const componenteKey = aggiungiLotto(tipoComponente, componente);
+
+    const edgeKey = `${prodottoKey}>${componenteKey}`;
+
+    if (!legami.has(edgeKey)) {
+      legami.set(edgeKey, {
+        da: prodottoKey,
+        a: componenteKey,
         quantita: Number(quantita) || 0,
         unita_misura: unita_misura || '',
       });
     }
   }
 
-  const tipoRadice = codice.startsWith('PF-') ? 'PF' : codice.startsWith('SM-') ? 'SM' : 'MP';
-  const radice = await cercaPerCodice(tipoRadice);
-  if (!radice) return res.status(404).json({ error: 'Lotto non trovato' });
-  aggiungiLotto(tipoRadice, radice);
-
   async function leggiRighe(tabella, colonne, colonnaFiltro, id) {
-    const { data, error } = await supabase.from(tabella).select(colonne).eq(colonnaFiltro, id);
+    const { data, error } = await supabase
+      .from(tabella)
+      .select(colonne)
+      .eq(colonnaFiltro, id);
+
     if (error) throw error;
     return data || [];
   }
 
+  // Individua il lotto iniziale.
+  const tipoRadice = codice.startsWith('PF-')
+    ? 'PF'
+    : codice.startsWith('SM-')
+      ? 'SM'
+      : 'MP';
+
+  const radice = await cercaPerCodice(tipoRadice);
+
+  if (!radice) {
+    return res.status(404).json({ error: 'Lotto non trovato' });
+  }
+
+  const radiceKey = aggiungiLotto(tipoRadice, radice);
+
+  // Conserva i DDT soltanto dei PF raggiunti nella catena.
+  const ddtVisitati = new Set();
+
   while (coda.length) {
     const key = coda.shift();
+
     if (visitati.has(key)) continue;
     visitati.add(key);
+
     const nodo = legami.get(key);
     const lotto = nodo.record;
 
-    if (nodo.tipo === 'MP') {
-      const [consumiSM, consumiPF] = await Promise.all([
-        leggiRighe('sm_consumi_mp', 'lotto_sm_id,quantita,unita_misura', 'lotto_mp_id', lotto.id),
-        leggiRighe('pf_consumi_mp', 'lotto_pf_id,quantita,unita_misura', 'lotto_mp_id', lotto.id),
-      ]);
-      for (const riga of consumiSM) await aggiungiRelazione('MP', lotto.id, 'SM', riga.lotto_sm_id, riga.quantita, riga.unita_misura);
-      for (const riga of consumiPF) await aggiungiRelazione('MP', lotto.id, 'PF', riga.lotto_pf_id, riga.quantita, riga.unita_misura);
-    } else if (nodo.tipo === 'SM') {
-      const [consumiMP, originiSM, usiSM, consumiPF] = await Promise.all([
-        leggiRighe('sm_consumi_mp', 'lotto_mp_id,quantita,unita_misura', 'lotto_sm_id', lotto.id),
-        leggiRighe('sm_consumi_sm', 'lotto_sm_origine_id,quantita,unita_misura', 'lotto_sm_id', lotto.id),
-        leggiRighe('sm_consumi_sm', 'lotto_sm_id,quantita,unita_misura', 'lotto_sm_origine_id', lotto.id),
-        leggiRighe('pf_consumi_sm', 'lotto_pf_id,quantita,unita_misura', 'lotto_sm_id', lotto.id),
-      ]);
-      for (const riga of consumiMP) await aggiungiRelazione('MP', riga.lotto_mp_id, 'SM', lotto.id, riga.quantita, riga.unita_misura);
-      for (const riga of originiSM) await aggiungiRelazione('SM', riga.lotto_sm_origine_id, 'SM', lotto.id, riga.quantita, riga.unita_misura);
-      for (const riga of usiSM) await aggiungiRelazione('SM', lotto.id, 'SM', riga.lotto_sm_id, riga.quantita, riga.unita_misura);
-      for (const riga of consumiPF) await aggiungiRelazione('SM', lotto.id, 'PF', riga.lotto_pf_id, riga.quantita, riga.unita_misura);
-    } else {
+    // MP: materia prima, non ha componenti a monte.
+    if (nodo.tipo === 'MP') continue;
+
+    if (nodo.tipo === 'PF') {
+      // Cerca soltanto i componenti utilizzati da questo PF.
       const [consumiMP, consumiSM, spedizioni] = await Promise.all([
-        leggiRighe('pf_consumi_mp', 'lotto_mp_id,quantita,unita_misura', 'lotto_pf_id', lotto.id),
-        leggiRighe('pf_consumi_sm', 'lotto_sm_id,quantita,unita_misura', 'lotto_pf_id', lotto.id),
-        leggiRighe('spedizioni_righe', 'spedizione_id,quantita,unita_misura', 'lotto_pf_id', lotto.id),
+        leggiRighe(
+          'pf_consumi_mp',
+          'lotto_mp_id,quantita,unita_misura',
+          'lotto_pf_id',
+          lotto.id
+        ),
+        leggiRighe(
+          'pf_consumi_sm',
+          'lotto_sm_id,quantita,unita_misura',
+          'lotto_pf_id',
+          lotto.id
+        ),
+        leggiRighe(
+          'spedizioni_righe',
+          'spedizione_id,quantita,unita_misura',
+          'lotto_pf_id',
+          lotto.id
+        ),
       ]);
-      for (const riga of consumiMP) await aggiungiRelazione('MP', riga.lotto_mp_id, 'PF', lotto.id, riga.quantita, riga.unita_misura);
-      for (const riga of consumiSM) await aggiungiRelazione('SM', riga.lotto_sm_id, 'PF', lotto.id, riga.quantita, riga.unita_misura);
+
+      // PF -> MP.
+      for (const riga of consumiMP) {
+        await aggiungiRelazione(
+          'PF',
+          lotto.id,
+          'MP',
+          riga.lotto_mp_id,
+          riga.quantita,
+          riga.unita_misura
+        );
+      }
+
+      // PF -> SM.
+      for (const riga of consumiSM) {
+        await aggiungiRelazione(
+          'PF',
+          lotto.id,
+          'SM',
+          riga.lotto_sm_id,
+          riga.quantita,
+          riga.unita_misura
+        );
+      }
+
+      // DDT associati esclusivamente ai PF raggiunti.
       for (const riga of spedizioni) {
-        const { data: spedizione, error } = await supabase.from('spedizioni').select('*').eq('id', riga.spedizione_id).maybeSingle();
+        const { data: spedizione, error } = await supabase
+          .from('spedizioni')
+          .select('*')
+          .eq('id', riga.spedizione_id)
+          .maybeSingle();
+
         if (error) throw error;
         if (!spedizione) continue;
+
         const ddtKey = `DDT:${spedizione.id}`;
+
         if (!legami.has(ddtKey)) {
-          legami.set(ddtKey, { id: spedizione.id, tipo: 'DDT', codice: spedizione.ddt_numero, descrizione: spedizione.cliente || '' });
+          legami.set(ddtKey, {
+            id: spedizione.id,
+            tipo: 'DDT',
+            codice: spedizione.ddt_numero,
+            descrizione: spedizione.cliente || '',
+          });
         }
+
         const edgeKey = `${key}>${ddtKey}`;
-        if (!legami.has(edgeKey)) legami.set(edgeKey, { da: key, a: ddtKey, quantita: Number(riga.quantita) || 0, unita_misura: riga.unita_misura || '' });
+
+        if (!legami.has(edgeKey)) {
+          legami.set(edgeKey, {
+            da: key,
+            a: ddtKey,
+            quantita: Number(riga.quantita) || 0,
+            unita_misura: riga.unita_misura || '',
+          });
+        }
+
+        ddtVisitati.add(ddtKey);
+      }
+    } else if (nodo.tipo === 'SM') {
+      // Cerca soltanto i componenti utilizzati da questo SM.
+      const [consumiMP, originiSM] = await Promise.all([
+        leggiRighe(
+          'sm_consumi_mp',
+          'lotto_mp_id,quantita,unita_misura',
+          'lotto_sm_id',
+          lotto.id
+        ),
+        leggiRighe(
+          'sm_consumi_sm',
+          'lotto_sm_origine_id,quantita,unita_misura',
+          'lotto_sm_id',
+          lotto.id
+        ),
+      ]);
+
+      // SM -> MP.
+      for (const riga of consumiMP) {
+        await aggiungiRelazione(
+          'SM',
+          lotto.id,
+          'MP',
+          riga.lotto_mp_id,
+          riga.quantita,
+          riga.unita_misura
+        );
+      }
+
+      // SM -> SM di origine.
+      for (const riga of originiSM) {
+        await aggiungiRelazione(
+          'SM',
+          lotto.id,
+          'SM',
+          riga.lotto_sm_origine_id,
+          riga.quantita,
+          riga.unita_misura
+        );
       }
     }
   }
 
-  const nodiPerKey = new Map([...legami.entries()].filter(([key]) => !key.includes('>')));
+  // Recupera esclusivamente i nodi, escludendo le relazioni.
+  const nodiPerKey = new Map(
+    [...legami.entries()].filter(([key]) => !key.includes('>'))
+  );
+
   const nodi = [...nodiPerKey.values()].map((nodo) => ({
-      id: nodo.id,
-      tipo: nodo.tipo,
-      codice: nodo.codice,
-      descrizione: nodo.descrizione,
-      meta: nodo.tipo === 'MP'
-        ? { fornitore: nodo.record.fornitori?.ragione_sociale || '', ddt: nodo.record.ddt_numero || '' }
-        : nodo.tipo === 'SM'
-          ? { lavorazione: nodo.record.lavorazione }
-          : nodo.tipo === 'PF'
-            ? { articolo: nodo.record.articoli_pf?.descrizione || '' }
-            : {},
-    }));
+    id: nodo.id,
+    tipo: nodo.tipo,
+    codice: nodo.codice,
+    descrizione: nodo.descrizione,
+    meta: nodo.tipo === 'MP'
+      ? {
+          fornitore: nodo.record.fornitori?.ragione_sociale || '',
+          ddt: nodo.record.ddt_numero || '',
+        }
+      : nodo.tipo === 'SM'
+        ? { lavorazione: nodo.record.lavorazione }
+        : nodo.tipo === 'PF'
+          ? {
+              articolo: nodo.record.articoli_pf?.descrizione || '',
+            }
+          : {},
+  }));
+
+  const ordine = { PF: 0, SM: 1, MP: 2, DDT: 3 };
+
   const passaggi = [...legami.values()]
     .filter((elemento) => elemento.da && elemento.a)
-    .map((elemento) => ({
-      da: nodiPerKey.get(elemento.da),
-      a: nodiPerKey.get(elemento.a),
-      quantita: elemento.quantita,
-      unita_misura: elemento.unita_misura,
-    }))
-    .filter((elemento) => elemento.da && elemento.a)
-    .map((elemento) => ({
-      da: { tipo: elemento.da.tipo, codice: elemento.da.codice, descrizione: elemento.da.descrizione },
-      a: { tipo: elemento.a.tipo, codice: elemento.a.codice, descrizione: elemento.a.descrizione },
-      quantita: elemento.quantita,
-      unita_misura: elemento.unita_misura,
-    }))
-    .sort((sinistra, destra) => {
-      const ordine = { MP: 0, SM: 1, PF: 2, DDT: 3 };
-      return ordine[sinistra.a.tipo] - ordine[destra.a.tipo]
-        || ordine[sinistra.da.tipo] - ordine[destra.da.tipo]
-        || sinistra.da.codice.localeCompare(destra.da.codice);
-    });
+    .map((elemento) => {
+      const da = nodiPerKey.get(elemento.da);
+      const a = nodiPerKey.get(elemento.a);
+
+      // Il DDT non è un lotto e viene gestito separatamente.
+      const nodoA = da
+        ? da
+        : null;
+
+      if (!nodoA) return null;
+
+      const destinazione = a || legami.get(elemento.a);
+      const origine = da;
+
+      if (!destinazione || !origine) return null;
+
+      return {
+        da: {
+          tipo: origine.tipo,
+          codice: origine.codice,
+          descrizione: origine.descrizione,
+        },
+        a: {
+          tipo: destinazione.tipo,
+          codice: destinazione.codice,
+          descrizione: destinazione.descrizione,
+        },
+        quantita: elemento.quantita,
+        unita_misura: elemento.unita_misura,
+      };
+    })
+    .filter(Boolean)
+    .sort((sinistra, destra) =>
+      (ordine[sinistra.da.tipo] ?? 99) -
+        (ordine[destra.da.tipo] ?? 99) ||
+      (ordine[sinistra.a.tipo] ?? 99) -
+        (ordine[destra.a.tipo] ?? 99) ||
+      sinistra.da.codice.localeCompare(destra.da.codice)
+    );
+
   const listaNodi = [...nodiPerKey.values()];
 
   res.json({
     query: codice,
     nodi,
     passaggi,
-    mp: listaNodi.filter((nodo) => nodo.tipo === 'MP').map((nodo) => ({
-      codice: nodo.codice,
-      materiale: nodo.record.materiali?.descrizione || '',
-      fornitore: nodo.record.fornitori?.ragione_sociale || '',
-    })),
-    sm: listaNodi.filter((nodo) => nodo.tipo === 'SM').map((nodo) => ({
-      codice: nodo.codice,
-      tipo: nodo.record.materiali?.descrizione || '',
-      lav: nodo.record.lavorazione,
-    })),
-    pf: listaNodi.filter((nodo) => nodo.tipo === 'PF').map((nodo) => ({
-      codice: nodo.codice,
-      articolo: nodo.record.articoli_pf?.descrizione || '',
-    })),
-    ddt: listaNodi.filter((nodo) => nodo.tipo === 'DDT').map((nodo) => ({
-      ddt: nodo.codice,
-      cliente: nodo.descrizione,
-    })),
+    mp: listaNodi
+      .filter((nodo) => nodo.tipo === 'MP')
+      .map((nodo) => ({
+        codice: nodo.codice,
+        materiale: nodo.record.materiali?.descrizione || '',
+        fornitore: nodo.record.fornitori?.ragione_sociale || '',
+      })),
+    sm: listaNodi
+      .filter((nodo) => nodo.tipo === 'SM')
+      .map((nodo) => ({
+        codice: nodo.codice,
+        tipo: nodo.record.materiali?.descrizione || '',
+        lav: nodo.record.lavorazione,
+      })),
+    pf: listaNodi
+      .filter((nodo) => nodo.tipo === 'PF')
+      .map((nodo) => ({
+        codice: nodo.codice,
+        articolo: nodo.record.articoli_pf?.descrizione || '',
+      })),
+    ddt: [...ddtVisitati]
+      .map((ddtKey) => legami.get(ddtKey))
+      .filter(Boolean)
+      .map((nodo) => ({
+        ddt: nodo.codice,
+        cliente: nodo.descrizione,
+      })),
   });
 }));
 

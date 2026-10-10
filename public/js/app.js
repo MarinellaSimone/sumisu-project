@@ -1064,6 +1064,194 @@ async function addArticolo(btn) {
 // ============================================================
 // Tracciabilità
 // ============================================================
+function setTraceView(view, button) {
+  const tableView = view === 'table';
+  document.getElementById('trace-table-view').style.display = tableView ? 'block' : 'none';
+  document.getElementById('trace-graph-view').style.display = tableView ? 'none' : 'block';
+  document.querySelectorAll('.trace-view-switch button').forEach((toggle) => {
+    const selected = toggle === button;
+    toggle.classList.toggle('on', selected);
+    toggle.setAttribute('aria-pressed', String(selected));
+  });
+}
+
+function renderTraceGraph(trace, rootCode) {
+  const container = document.getElementById('trace-graph');
+  container.replaceChildren();
+
+  const nodes = new Map((trace.nodi || []).map((node) => [`${node.tipo}:${node.codice}`, node]));
+  const edges = (trace.passaggi || []).map((passaggio) => {
+    const componente = passaggio.a.tipo === 'DDT' ? passaggio.da : passaggio.a;
+    const prodotto = passaggio.a.tipo === 'DDT' ? passaggio.a : passaggio.da;
+    const from = `${componente.tipo}:${componente.codice}`;
+    const to = `${prodotto.tipo}:${prodotto.codice}`;
+    if (!nodes.has(from)) nodes.set(from, componente);
+    if (!nodes.has(to)) nodes.set(to, prodotto);
+    return { from, to, quantita: passaggio.quantita, unita_misura: passaggio.unita_misura };
+  });
+
+  const nodeList = [...nodes.values()];
+  const ranks = new Map(nodeList.map((node) => [`${node.tipo}:${node.codice}`, 0]));
+  for (let pass = 0; pass < nodeList.length; pass += 1) {
+    let changed = false;
+    edges.forEach((edge) => {
+      const nextRank = ranks.get(edge.from) + 1;
+      if (ranks.get(edge.to) < nextRank) {
+        ranks.set(edge.to, nextRank);
+        changed = true;
+      }
+    });
+    if (!changed) break;
+  }
+
+  const typeOrder = { MP: 0, SM: 1, PF: 2, DDT: 3 };
+  const layers = new Map();
+  nodeList.forEach((node) => {
+    const rank = ranks.get(`${node.tipo}:${node.codice}`);
+    if (!layers.has(rank)) layers.set(rank, []);
+    layers.get(rank).push(node);
+  });
+
+  const nodeWidth = 232;
+  const nodeHeight = 82;
+  const layerGap = 92;
+  const rowGap = 38;
+  const orderedLayers = [...layers.entries()].sort(([a], [b]) => a - b);
+  let maxRows = 1;
+  orderedLayers.forEach(([, layerNodes]) => {
+    layerNodes.sort((a, b) => (typeOrder[a.tipo] ?? 9) - (typeOrder[b.tipo] ?? 9) || a.codice.localeCompare(b.codice));
+    maxRows = Math.max(maxRows, layerNodes.length);
+  });
+  const maxRank = Math.max(0, ...ranks.values());
+  const width = Math.max(700, (maxRank + 1) * (nodeWidth + layerGap) + 24);
+  const height = Math.max(220, maxRows * (nodeHeight + rowGap) + 36);
+  const positions = new Map();
+  orderedLayers.forEach(([rank, layerNodes]) => {
+    layerNodes.forEach((node, index) => {
+      positions.set(`${node.tipo}:${node.codice}`, {
+        x: 20 + rank * (nodeWidth + layerGap),
+        y: 18 + index * (nodeHeight + rowGap),
+      });
+    });
+  });
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', `Grafo della catena di tracciabilità per ${rootCode}`);
+  const title = document.createElementNS(ns, 'title');
+  title.textContent = `Catena di tracciabilità · ${rootCode}`;
+  svg.appendChild(title);
+
+  const defs = document.createElementNS(ns, 'defs');
+  const marker = document.createElementNS(ns, 'marker');
+  marker.setAttribute('id', 'trace-arrow');
+  marker.setAttribute('viewBox', '0 0 10 10');
+  marker.setAttribute('refX', '9');
+  marker.setAttribute('refY', '5');
+  marker.setAttribute('markerWidth', '7');
+  marker.setAttribute('markerHeight', '7');
+  marker.setAttribute('orient', 'auto-start-reverse');
+  const arrow = document.createElementNS(ns, 'path');
+  arrow.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+  arrow.setAttribute('fill', '#8b8791');
+  marker.appendChild(arrow);
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  edges.forEach((edge) => {
+    const from = positions.get(edge.from);
+    const to = positions.get(edge.to);
+    if (!from || !to) return;
+    const x1 = from.x + nodeWidth;
+    const y1 = from.y + nodeHeight / 2;
+    const x2 = to.x;
+    const y2 = to.y + nodeHeight / 2;
+    const middle = (x1 + x2) / 2;
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', `M ${x1} ${y1} C ${middle} ${y1}, ${middle} ${y2}, ${x2} ${y2}`);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#aaa6ad');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('marker-end', 'url(#trace-arrow)');
+    svg.appendChild(path);
+
+    const label = `${fmt(edge.quantita)} ${edge.unita_misura || ''}`.trim();
+    const labelText = document.createElementNS(ns, 'text');
+    labelText.setAttribute('x', middle);
+    labelText.setAttribute('y', (y1 + y2) / 2 - 7);
+    labelText.setAttribute('text-anchor', 'middle');
+    labelText.setAttribute('class', 'trace-edge-label');
+    labelText.textContent = label;
+    svg.appendChild(labelText);
+  });
+
+  const colors = {
+    MP: ['#eef4e0', '#584a99'],
+    SM: ['#f0eefb', '#6b5bb5'],
+    PF: ['#faeeda', '#633806'],
+    DDT: ['#fcebeb', '#791f1f'],
+  };
+  nodeList.forEach((node) => {
+    const key = `${node.tipo}:${node.codice}`;
+    const position = positions.get(key);
+    const [fill, color] = colors[node.tipo] || ['#f7f6f2', '#5f5e5a'];
+    const group = document.createElementNS(ns, 'g');
+    group.setAttribute('class', `trace-node${node.codice === rootCode ? ' trace-node-root' : ''}`);
+    const rect = document.createElementNS(ns, 'rect');
+    rect.setAttribute('x', position.x);
+    rect.setAttribute('y', position.y);
+    rect.setAttribute('width', nodeWidth);
+    rect.setAttribute('height', nodeHeight);
+    rect.setAttribute('rx', '10');
+    rect.setAttribute('fill', fill);
+    rect.setAttribute('stroke', color);
+    group.appendChild(rect);
+
+    const typeLabel = document.createElementNS(ns, 'text');
+    typeLabel.setAttribute('x', position.x + 12);
+    typeLabel.setAttribute('y', position.y + 21);
+    typeLabel.setAttribute('class', 'trace-node-type');
+    typeLabel.setAttribute('fill', color);
+    typeLabel.textContent = node.tipo;
+    group.appendChild(typeLabel);
+
+    const codeLabel = document.createElementNS(ns, 'text');
+    codeLabel.setAttribute('x', position.x + 12);
+    codeLabel.setAttribute('y', position.y + 43);
+    codeLabel.setAttribute('class', 'trace-node-code');
+    codeLabel.textContent = node.codice;
+    group.appendChild(codeLabel);
+
+    const description = node.descrizione || node.meta?.fornitore || node.meta?.lavorazione || '';
+    if (description) {
+      const descriptionLabel = document.createElementNS(ns, 'text');
+      descriptionLabel.setAttribute('x', position.x + 12);
+      descriptionLabel.setAttribute('y', position.y + 64);
+      descriptionLabel.setAttribute('class', 'trace-node-description');
+      descriptionLabel.textContent = description.length > 30 ? `${description.slice(0, 27)}…` : description;
+      group.appendChild(descriptionLabel);
+    }
+
+    const nodeTitle = document.createElementNS(ns, 'title');
+    nodeTitle.textContent = [node.tipo, node.codice, description].filter(Boolean).join(' · ');
+    group.appendChild(nodeTitle);
+    svg.appendChild(group);
+  });
+
+  if (!nodeList.length) {
+    const empty = document.createElement('p');
+    empty.className = 'trace-graph-empty';
+    empty.textContent = 'Nessun elemento disponibile per il grafo.';
+    container.appendChild(empty);
+    return;
+  }
+  container.appendChild(svg);
+}
+
 async function doTrace() {
   const v = val('trace-in').trim();
   if (!v) return showToast('Inserisci un codice lotto', 'err');
@@ -1086,6 +1274,8 @@ async function doTrace() {
       ).join('');
     }).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
 
+    renderTraceGraph(c, v);
+    setTraceView('table', document.querySelector('.trace-view-switch button'));
     document.getElementById('trace-res').style.display = 'block';
   } catch (e) { showToast(e.message, 'err'); }
   finally { loading(false); }

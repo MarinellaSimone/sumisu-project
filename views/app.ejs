@@ -410,12 +410,22 @@
             <div class="card" style="border-color:#f7c1c1;">
               <div style="font-size:14px;font-weight:700;color:var(--rosso);margin-bottom:10px;"><i class="ti ti-git-branch"></i> Catena · <span id="trace-title" class="mono"></span></div>
               <p style="font-size:12px;color:var(--grigio);margin-bottom:10px;">Ogni riga rappresenta un collegamento diretto: una materia prima o un semilavorato utilizzato per ottenere il lotto successivo.</p>
-              <div class="tw"><table><thead><tr><th>Lotto utilizzato</th><th>Lotto ottenuto</th><th>Quantità collegata</th></tr></thead><tbody id="trace-chain"></tbody></table></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
-              <div class="card" style="padding:0;overflow:hidden;"><div style="padding:10px 14px;font-size:12px;font-weight:700;background:var(--verdel);color:var(--violad);border-bottom:1px solid var(--bdr);">Materie prime</div><div class="tw"><table><thead><tr><th>Lotto</th><th>Materiale</th><th>Fornitore</th></tr></thead><tbody id="trace-mp"></tbody></table></div></div>
-              <div class="card" style="padding:0;overflow:hidden;"><div style="padding:10px 14px;font-size:12px;font-weight:700;background:var(--violal);color:var(--viola);border-bottom:1px solid var(--bdr);">SM lavorazioni</div><div class="tw"><table><thead><tr><th>Lotto</th><th>Tipo</th><th>Lav.</th></tr></thead><tbody id="trace-sm"></tbody></table></div></div>
-              <div class="card" style="padding:0;overflow:hidden;"><div style="padding:10px 14px;font-size:12px;font-weight:700;background:var(--amberl);color:var(--amber);border-bottom:1px solid var(--bdr);">Destinazioni</div><div class="tw"><table><thead><tr><th>PF</th><th>DDT</th><th>Cliente</th></tr></thead><tbody id="trace-pf"></tbody></table></div></div>
+              <div class="trace-view-switch" role="group" aria-label="Visualizzazione della catena">
+                <button class="btn btn-sm on" type="button" aria-pressed="true" onclick="setTraceView('table',this)"><i class="ti ti-table"></i>Tabella</button>
+                <button class="btn btn-sm" type="button" aria-pressed="false" onclick="setTraceView('graph',this)"><i class="ti ti-git-branch"></i>Grafo</button>
+              </div>
+              <div id="trace-table-view">
+                <div class="tw"><table><thead><tr><th>Lotto utilizzato</th><th>Lotto ottenuto</th><th>Quantità collegata</th></tr></thead><tbody id="trace-chain"></tbody></table></div>
+                <div class="trace-summary-grid">
+                  <div class="card trace-summary-card"><div class="trace-summary-title trace-summary-mp">Materie prime</div><div class="tw"><table><thead><tr><th>Lotto</th><th>Materiale</th><th>Fornitore</th></tr></thead><tbody id="trace-mp"></tbody></table></div></div>
+                  <div class="card trace-summary-card"><div class="trace-summary-title trace-summary-sm">SM lavorazioni</div><div class="tw"><table><thead><tr><th>Lotto</th><th>Tipo</th><th>Lav.</th></tr></thead><tbody id="trace-sm"></tbody></table></div></div>
+                  <div class="card trace-summary-card"><div class="trace-summary-title trace-summary-pf">Destinazioni</div><div class="tw"><table><thead><tr><th>PF</th><th>DDT</th><th>Cliente</th></tr></thead><tbody id="trace-pf"></tbody></table></div></div>
+                </div>
+              </div>
+              <div id="trace-graph-view" style="display:none;">
+                <p class="trace-graph-hint">Il grafo si legge da sinistra verso destra: componenti, lotti prodotti e destinazioni.</p>
+                <div id="trace-graph" class="trace-graph-scroll"></div>
+              </div>
             </div>
           </div>
         </div>
