@@ -851,7 +851,7 @@ async function scalaGiacenza(tabella, id, qty) {
   }
   const nuova = Math.max(0, Number(r.giacenza) - qty);
   const update = { giacenza: nuova };
-  if (nuova <= 0) update.stato = tabella === 'lotti_mp' ? 'Esaurito' : 'Esaurito';
+  if (nuova <= 0) update.stato = tabella === 'lotti_pf' ? 'Completato' : 'Esaurito';
   const { error: updateError } = await supabase.from(tabella).update(update).eq('id', id);
   if (updateError) throw updateError;
 }
