@@ -258,7 +258,7 @@ router.get('/lotti-mp', wrap(async (req, res) => {
 }));
 
 router.post('/lotti-mp', wrap(async (req, res) => {
-  const { fornitore_id, materiale_id, ddt_numero, ddt_data, quantita, unita_misura, n_pedane, note } = req.body;
+  const { fornitore_id, materiale_id, ddt_numero, ddt_data, quantita, unita_misura, n_pedane, note, label_options } = req.body;
 
   // sigla materiale per il codice lotto
   let sigla = 'GEN';
@@ -278,6 +278,7 @@ router.post('/lotti-mp', wrap(async (req, res) => {
     unita_misura: unita_misura || 'kg',
     n_pedane: Number(n_pedane) || 0,
     note,
+    label_options: label_options || {},
     creato_da: req.session.user.id,
   }).select().single();
   if (error) throw error;
@@ -298,7 +299,7 @@ router.get('/lotti-sm', wrap(async (req, res) => {
 
 router.post('/lotti-sm', wrap(async (req, res) => {
   const { tipo_semilavorato, lavorazione, fornitore_sm_id, ddt_numero, ddt_data,
-          quantita, unita_misura, data_lavorazione, note, consumi, consumi_mp, consumi_sm } = req.body;
+          quantita, unita_misura, data_lavorazione, note, consumi, consumi_mp, consumi_sm, label_options } = req.body;
   const consumiMP = consumi_mp || consumi;
   await verificaDisponibilita('lotti_mp', consumiMP, 'lotto_mp_id');
   await verificaDisponibilita('lotti_sm', consumi_sm, 'lotto_sm_origine_id');
@@ -318,6 +319,7 @@ router.post('/lotti-sm', wrap(async (req, res) => {
     unita_misura: unita_misura || 'pz',
     data_lavorazione: data_lavorazione || null,
     note,
+    label_options: label_options || {},
     creato_da: req.session.user.id,
   }).select().single();
   if (error) throw error;
@@ -361,7 +363,7 @@ router.get('/lotti-pf', wrap(async (req, res) => {
 }));
 
 router.post('/lotti-pf', wrap(async (req, res) => {
-  const { articolo_id, quantita, unita_misura, data_produzione, note, consumi_mp, consumi_sm } = req.body;
+  const { articolo_id, quantita, unita_misura, data_produzione, note, consumi_mp, consumi_sm, label_options } = req.body;
   await verificaDisponibilita('lotti_mp', consumi_mp, 'lotto_mp_id');
   await verificaDisponibilita('lotti_sm', consumi_sm, 'lotto_sm_id');
 
@@ -380,6 +382,7 @@ router.post('/lotti-pf', wrap(async (req, res) => {
     unita_misura: unita_misura || 'pz',
     data_produzione: data_produzione || null,
     note,
+    label_options: label_options || {},
     stato: 'In corso',
     creato_da: req.session.user.id,
   }).select().single();

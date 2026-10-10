@@ -10,6 +10,7 @@ const STATO_PILL = {
   Consegnato: 'pill-verde', 'In transito': 'pill-viola', Annullato: 'pill-rosso',
   Attivo: 'pill-verde', Sospeso: 'pill-amber', Bozza: 'pill-grigio',
 };
+const STORICO_ETICHETTE = { mp: [], sm: [], pf: [] };
 
 // ---- fetch helper ----
 async function api(url, opts = {}) {
@@ -110,8 +111,9 @@ async function loadMP() {
     fillSelect('mp-fornitore', forn.map((f) => ({ v: f.id, t: f.ragione_sociale })), true);
     fillSelect('mp-materiale', mat.map((m) => ({ v: m.id, t: `${m.codice} · ${m.descrizione}` })));
     if (!document.getElementById('mp-data').value) document.getElementById('mp-data').value = today();
+    STORICO_ETICHETTE.mp = lotti;
     document.getElementById('mp-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td>${esc(l.ddt_numero || '—')}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('mp','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td>${esc(l.ddt_numero || '—')}</td><td><div class="history-actions"><button class="btn btn-primary btn-sm" aria-label="Rivedi etichetta ${esc(l.codice_lotto)}" onclick="rivediEtichetta('mp','${esc(l.id)}')"><i class="ti ti-eye"></i></button><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('mp','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></div></td></tr>`
     ).join('') || '<tr><td colspan="7"><div class="empty"><p>Nessun ricevimento</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -247,7 +249,7 @@ function salvaLabel(selector = "#label-mp") {
     });
 }
 
-function generateEtichetta(r, date, selector = "#label-mp", type = "MP", options = {}) {
+async function generateEtichetta(r, date, selector = "#label-mp", type = "MP", options = {}) {
   const params = new URLSearchParams({
     date,
     quantity: r.quantita,
@@ -263,39 +265,52 @@ function generateEtichetta(r, date, selector = "#label-mp", type = "MP", options
     foodContactText: options.foodContactText ? 'true' : 'false',
     foodContactMunicipality: options.foodContactMunicipality ? 'true' : 'false',
   });
-  fetch(`/barcode/generate?${params}`)
-        .then(res => res.json())
-        .then(data => {
-            const labelEl = document.querySelector(selector);
-            labelEl.innerHTML = data.data;
+  try {
+    const response = await fetch(`/barcode/generate?${params}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Errore nella generazione dell’etichetta');
+    const labelEl = document.querySelector(selector);
+    if (!labelEl) throw new Error('Area etichetta non trovata');
+    labelEl.innerHTML = data.data;
 
-            const labelBox = labelEl.querySelector('.barcode-mp');
-            if (labelBox) {
-                const saveBtn = document.createElement('button');
-                saveBtn.className = 'save-label';
-                saveBtn.setAttribute('aria-label', 'Salva immagine');
-                saveBtn.innerHTML = '<i class="ti ti-download"></i>';
-                saveBtn.onclick = () => salvaLabel(selector);
+    const labelBox = labelEl.querySelector('.barcode-mp');
+    if (labelBox) {
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'save-label';
+      saveBtn.setAttribute('aria-label', 'Salva immagine');
+      saveBtn.innerHTML = '<i class="ti ti-download"></i>';
+      saveBtn.onclick = () => salvaLabel(selector);
 
-                const closeBtn = document.createElement('button');
-                closeBtn.className = 'close-label';
-                closeBtn.setAttribute('aria-label', 'Chiudi');
-                closeBtn.textContent = '×';
-                closeBtn.onclick = () => chiudiLabel(selector);
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'close-label';
+      closeBtn.setAttribute('aria-label', 'Chiudi');
+      closeBtn.textContent = '×';
+      closeBtn.onclick = () => chiudiLabel(selector);
 
-                const printBtn = document.createElement('button');
-                printBtn.className = 'print-label';
-                printBtn.setAttribute('aria-label', 'Stampa');
-                printBtn.innerHTML = '<i class="ti ti-printer"></i>';
-                printBtn.onclick = () => stampaLabel(selector);
+      const printBtn = document.createElement('button');
+      printBtn.className = 'print-label';
+      printBtn.setAttribute('aria-label', 'Stampa');
+      printBtn.innerHTML = '<i class="ti ti-printer"></i>';
+      printBtn.onclick = () => stampaLabel(selector);
 
-                labelBox.append(saveBtn, printBtn, closeBtn);
-            }
+      labelBox.append(saveBtn, printBtn, closeBtn);
+    }
 
-            labelEl.classList.add("show");
-            console.log(data);
-            console.log(data.label);
-        });
+    labelEl.classList.add('show');
+  } catch (e) {
+    showToast(`Errore nella generazione dell’etichetta: ${e.message}`, 'err');
+  }
+}
+
+function rivediEtichetta(tipo, id) {
+  const l = STORICO_ETICHETTE[tipo]?.find((lotto) => lotto.id === id);
+  if (!l) return showToast('Lotto non trovato nello storico', 'err');
+  const date = tipo === 'mp' ? l.ddt_data : tipo === 'sm' ? l.data_lavorazione : l.data_produzione;
+  const lotDate = String(l.codice_lotto || '').match(/^[A-Z]+-(\d{4})(\d{2})(\d{2})-/);
+  const labelDate = date || (lotDate ? `${lotDate[1]}-${lotDate[2]}-${lotDate[3]}` : null);
+  const labelType = tipo.toUpperCase();
+  const selector = `#label-${tipo}`;
+  generateEtichetta(l, labelDate, selector, labelType, l.label_options || {});
 }
 
 async function salvaMP(btn) {
@@ -304,20 +319,22 @@ async function salvaMP(btn) {
   const ddt = val('mp-ddt'), qty = val('mp-qty');
   if (!materiale_id) return showToast('Seleziona il materiale', 'err');
   if (!ddt || !qty) return showToast('DDT e quantità obbligatori', 'err');
+  const labelOptions = {
+    foodContactSymbol: document.getElementById('mp-food-contact-symbol').checked,
+    foodContactText: document.getElementById('mp-food-contact-text').checked,
+  };
   loading(true, 'Registrazione ricevimento…');
   try {
     const r = await api('/lotti-mp', { method: 'POST', body: {
       fornitore_id: val('mp-fornitore') || null, materiale_id,
       ddt_numero: ddt, ddt_data: val('mp-data'),
       quantita: qty, unita_misura: val('mp-um'), n_pedane: val('mp-ped'), note: val('mp-note'),
+      label_options: labelOptions,
     }});
     showToast(`Ricevimento registrato! Lotto ${r.codice_lotto}`);
     ['mp-ddt', 'mp-qty', 'mp-note'].forEach((id) => (document.getElementById(id).value = ''));      
     loadMP();
-    generateEtichetta(r, r.ddt_data, '#label-mp', 'MP', {
-      foodContactSymbol: document.getElementById('mp-food-contact-symbol').checked,
-      foodContactText: document.getElementById('mp-food-contact-text').checked,
-    });
+    generateEtichetta(r, r.ddt_data, '#label-mp', 'MP', labelOptions);
   } catch (e) { showToast(e.message, 'err'); }
   finally { loading(false); }
 }
@@ -361,8 +378,9 @@ async function loadSM() {
     fillSelect('sm-sm-sel', lotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto SM…');
     if (!document.getElementById('sm-data').value) document.getElementById('sm-data').value = today();
     smConsumi = []; smConsumiSM = []; renderSMConsumi(); renderSMConsumiSM();
+    STORICO_ETICHETTE.sm = lotti;
     document.getElementById('sm-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('sm','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td><div class="history-actions"><button class="btn btn-primary btn-sm" aria-label="Rivedi etichetta ${esc(l.codice_lotto)}" onclick="rivediEtichetta('sm','${esc(l.id)}')"><i class="ti ti-eye"></i></button><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('sm','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></div></td></tr>`
     ).join('') || '<tr><td colspan="6"><div class="empty"><p>Nessuna lavorazione</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -500,6 +518,10 @@ async function salvaSM(btn) {
   const qty = val('sm-qty');
   if (qty <= 0) return showToast('Quantita prodotta non puo essere zero', 'err');
   if (!tipo) return showToast('Inserisci il tipo di semilavorato', 'err');
+  const labelOptions = {
+    foodContactSymbol: document.getElementById('sm-food-contact-symbol').checked,
+    foodContactText: document.getElementById('sm-food-contact-text').checked,
+  };
   loading(true, 'Registrazione SM…');
   try {
     const tipoSemilavorato = await createSMMaterialFromForm();
@@ -510,11 +532,9 @@ async function salvaSM(btn) {
       quantita: qty, unita_misura: val('sm-um'), data_lavorazione: val('sm-data'), note: val('sm-note'),
       consumi_mp: smConsumi.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
       consumi_sm: smConsumiSM.map((c) => ({ lotto_sm_origine_id: c.lotto_sm_origine_id, quantita: c.quantita, unita_misura: c.um })),
+      label_options: labelOptions,
     }});
-    generateEtichetta(r, r.data_lavorazione, '#label-sm', 'SM', {
-      foodContactSymbol: document.getElementById('sm-food-contact-symbol').checked,
-      foodContactText: document.getElementById('sm-food-contact-text').checked,
-    });
+    generateEtichetta(r, r.data_lavorazione, '#label-sm', 'SM', labelOptions);
     showToast(`Lavorazione SM registrata! Lotto ${r.codice_lotto}`);
     ['sm-note'].forEach((id) => (document.getElementById(id).value = ''));
     document.getElementById('sm-qty').value = 0;
@@ -560,8 +580,9 @@ async function loadPF() {
     fillSelect('pf-sm-sel', smLotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto SM…');
     if (!document.getElementById('pf-data').value) document.getElementById('pf-data').value = today();
     pfConsumiMP = []; pfConsumiSM = []; renderPFConsumi();
+    STORICO_ETICHETTE.pf = lotti;
     document.getElementById('pf-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td><td><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('pf','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td><td><div class="history-actions"><button class="btn btn-primary btn-sm" aria-label="Rivedi etichetta ${esc(l.codice_lotto)}" onclick="rivediEtichetta('pf','${esc(l.id)}')"><i class="ti ti-eye"></i></button><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('pf','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></div></td></tr>`
     ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun ordine</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -618,23 +639,25 @@ async function salvaPF(btn) {
   const um = val('pf-um');
   if (!art) return showToast('Seleziona un articolo', 'err');
   if (!qty || qty <= 0) return showToast('Inserisci la quantità', 'err');
+  const labelOptions = {
+    foodContactSymbol: document.getElementById('pf-food-contact-symbol').checked,
+    foodContact20Pap: document.getElementById('pf-food-contact-20-pap').checked,
+    foodContact21Pap: document.getElementById('pf-food-contact-21-pap').checked,
+    foodContact22Pap: document.getElementById('pf-food-contact-22-pap').checked,
+    foodContact81: document.getElementById('pf-food-contact-81').checked,
+    foodContact4Ldpe: document.getElementById('pf-food-contact-4-ldpe').checked,
+    foodContactText: document.getElementById('pf-food-contact-text').checked,
+    foodContactMunicipality: document.getElementById('pf-food-contact-municipality').checked,
+  };
   loading(true, 'Avvio produzione…');
   try {
     const r = await api('/lotti-pf', { method: 'POST', body: {
       articolo_id: art, quantita: qty, unita_misura: um, data_produzione: val('pf-data'),
       consumi_mp: pfConsumiMP.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
       consumi_sm: pfConsumiSM.map((c) => ({ lotto_sm_id: c.lotto_sm_id, quantita: c.quantita, unita_misura: c.um })),
+      label_options: labelOptions,
     }});
-    generateEtichetta(r, r.data_produzione, '#label-pf', 'PF', {
-      foodContactSymbol: document.getElementById('pf-food-contact-symbol').checked,
-      foodContact20Pap: document.getElementById('pf-food-contact-20-pap').checked,
-      foodContact21Pap: document.getElementById('pf-food-contact-21-pap').checked,
-      foodContact22Pap: document.getElementById('pf-food-contact-22-pap').checked,
-      foodContact81: document.getElementById('pf-food-contact-81').checked,
-      foodContact4Ldpe: document.getElementById('pf-food-contact-4-ldpe').checked,
-      foodContactText: document.getElementById('pf-food-contact-text').checked,
-      foodContactMunicipality: document.getElementById('pf-food-contact-municipality').checked,
-    });
+    generateEtichetta(r, r.data_produzione, '#label-pf', 'PF', labelOptions);
     showToast(`Ordine PF avviato! Lotto ${r.codice_lotto}`);
     document.getElementById('pf-qty').value = 0;
     loadPF();
