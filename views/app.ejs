@@ -159,6 +159,27 @@
                   <button class="btn btn-verde" onclick="addSMConsumoByScan()"><i class="ti ti-scan"></i>Recupera lotto</button>
                 </div>
               </div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Lotti SM utilizzati</div>
+              <div id="sm-sm-add-tabs" class="tabs" style="margin-bottom:10px;">
+                <button class="tab-btn on" onclick="smSourceTab('manual',this)">Manuale</button>
+                <button class="tab-btn" onclick="smSourceTab('scanner',this)">Scannerizza</button>
+              </div>
+              <div id="sm-sm-rows"></div>
+              <div id="sm-sm-manual" style="display:block;">
+                <div style="display:flex;gap:8px;margin-bottom:14px;">
+                  <select class="fi" id="sm-sm-sel" style="flex:1;font-size:13px;"><option value="">Aggiungi lotto SM…</option></select>
+                  <button class="btn btn-primary" style="background:var(--violal);border-color:#c5bfee;color:var(--viola);" onclick="addSMConsumoSM()"><i class="ti ti-plus"></i>SM</button>
+                </div>
+              </div>
+              <div id="sm-sm-scanner" style="display:none;">
+                <div class="fr" style="margin-bottom:0;">
+                  <label class="fl">Barcode scannerizzato</label>
+                  <input class="fi" id="sm-sm-scan" placeholder="Incolla / scannerizza il valore barcode" onkeydown="if(event.key==='Enter') addSMConsumoSMByScan()">
+                </div>
+                <div style="display:flex;justify-content:flex-start;gap:8px;margin-top:8px;">
+                  <button class="btn btn-primary" style="background:var(--violal);border-color:#c5bfee;color:var(--viola);" onclick="addSMConsumoSMByScan()"><i class="ti ti-scan"></i>Recupera lotto</button>
+                </div>
+              </div>
               <div class="fr"><label class="fl">Note</label><textarea class="fi" id="sm-note"></textarea></div>
               <div class="fr"><label class="fl">Informazioni etichetta</label>
                 <div class="food-contact-symbol-options">
@@ -388,7 +409,8 @@
           <div id="trace-res" style="display:none;margin-top:16px;">
             <div class="card" style="border-color:#f7c1c1;">
               <div style="font-size:14px;font-weight:700;color:var(--rosso);margin-bottom:10px;"><i class="ti ti-git-branch"></i> Catena · <span id="trace-title" class="mono"></span></div>
-              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;" id="trace-chain"></div>
+              <p style="font-size:12px;color:var(--grigio);margin-bottom:10px;">Ogni riga rappresenta un collegamento diretto: una materia prima o un semilavorato utilizzato per ottenere il lotto successivo.</p>
+              <div class="tw"><table><thead><tr><th>Lotto utilizzato</th><th>Lotto ottenuto</th><th>Quantità collegata</th></tr></thead><tbody id="trace-chain"></tbody></table></div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
               <div class="card" style="padding:0;overflow:hidden;"><div style="padding:10px 14px;font-size:12px;font-weight:700;background:var(--verdel);color:var(--violad);border-bottom:1px solid var(--bdr);">Materie prime</div><div class="tw"><table><thead><tr><th>Lotto</th><th>Materiale</th><th>Fornitore</th></tr></thead><tbody id="trace-mp"></tbody></table></div></div>

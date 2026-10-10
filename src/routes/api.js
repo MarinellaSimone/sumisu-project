@@ -298,8 +298,10 @@ router.get('/lotti-sm', wrap(async (req, res) => {
 
 router.post('/lotti-sm', wrap(async (req, res) => {
   const { tipo_semilavorato, lavorazione, fornitore_sm_id, ddt_numero, ddt_data,
-          quantita, unita_misura, data_lavorazione, note, consumi } = req.body;
-  await verificaDisponibilita('lotti_mp', consumi, 'lotto_mp_id'); //TODO: verificare perche ci sono gli id "mp" e non "sm" nei consumi
+          quantita, unita_misura, data_lavorazione, note, consumi, consumi_mp, consumi_sm } = req.body;
+  const consumiMP = consumi_mp || consumi;
+  await verificaDisponibilita('lotti_mp', consumiMP, 'lotto_mp_id');
+  await verificaDisponibilita('lotti_sm', consumi_sm, 'lotto_sm_origine_id');
 
   const { data: materiale } = await supabase.from('materiali').select('codice').eq('id', tipo_semilavorato).maybeSingle();
   const sigla = String(materiale?.codice || 'SM').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -320,15 +322,27 @@ router.post('/lotti-sm', wrap(async (req, res) => {
   }).select().single();
   if (error) throw error;
 
-  // Registra consumi MP e scala giacenze
-  if (Array.isArray(consumi)) {
-    for (const c of consumi) {
+  // Registra consumi MP e SM e scala le relative giacenze
+  if (Array.isArray(consumiMP)) {
+    for (const c of consumiMP) {
       if (!c.lotto_mp_id) continue;
-      await supabase.from('sm_consumi_mp').insert({
+      const { error: consumoError } = await supabase.from('sm_consumi_mp').insert({
         lotto_sm_id: lotto.id, lotto_mp_id: c.lotto_mp_id,
         quantita: Number(c.quantita) || 0, unita_misura: c.unita_misura,
       });
+      if (consumoError) throw consumoError;
       await scalaGiacenza('lotti_mp', c.lotto_mp_id, Number(c.quantita) || 0);
+    }
+  }
+  if (Array.isArray(consumi_sm)) {
+    for (const c of consumi_sm) {
+      if (!c.lotto_sm_origine_id) continue;
+      const { error: consumoError } = await supabase.from('sm_consumi_sm').insert({
+        lotto_sm_id: lotto.id, lotto_sm_origine_id: c.lotto_sm_origine_id,
+        quantita: Number(c.quantita) || 0, unita_misura: c.unita_misura,
+      });
+      if (consumoError) throw consumoError;
+      await scalaGiacenza('lotti_sm', c.lotto_sm_origine_id, Number(c.quantita) || 0);
     }
   }
   res.json(lotto);
@@ -514,6 +528,8 @@ router.delete('/lotti-mp/:id/record', wrap(async (req, res) => {
 router.delete('/lotti-sm/:id/record', wrap(async (req, res) => {
   await eliminaLottoStorico('lotti_sm', req.params.id, [
     { tabella: 'sm_consumi_mp', colonna: 'lotto_sm_id' },
+    { tabella: 'sm_consumi_sm', colonna: 'lotto_sm_id' },
+    { tabella: 'sm_consumi_sm', colonna: 'lotto_sm_origine_id' },
     { tabella: 'pf_consumi_sm', colonna: 'lotto_sm_id' },
   ], 'Il lotto SM è collegato a lavorazioni o ordini e non può essere eliminato.', res);
 }));
@@ -566,62 +582,176 @@ router.post('/spedizioni', requireAdmin, wrap(async (req, res) => {
 // ============================================================
 router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
   const codice = req.params.codice.trim();
-  const catena = { query: codice, mp: [], sm: [], pf: [], ddt: [] };
+  const tables = {
+    MP: { table: 'lotti_mp', select: '*,fornitori(ragione_sociale),materiali(descrizione)' },
+    SM: { table: 'lotti_sm', select: '*,materiali(codice,descrizione)' },
+    PF: { table: 'lotti_pf', select: '*,articoli_pf(descrizione)' },
+  };
+  const legami = new Map();
+  const visitati = new Set();
+  const coda = [];
 
-  // Individua il tipo dal prefisso
-  const findMP = async (id) => (await supabase.from('lotti_mp').select('*,fornitori(ragione_sociale),materiali(descrizione)').eq('id', id).maybeSingle()).data;
-  const findSM = async (id) => (await supabase.from('lotti_sm').select('*,materiali(codice,descrizione)').eq('id', id).maybeSingle()).data;
-  const findPF = async (id) => (await supabase.from('lotti_pf').select('*,articoli_pf(descrizione)').eq('id', id).maybeSingle()).data;
+  async function caricaLotto(tipo, id) {
+    const config = tables[tipo];
+    const { data, error } = await supabase.from(config.table).select(config.select).eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data;
+  }
 
-  async function espandiPF(pf) {
-    if (!pf) return;
-    catena.pf.push({ codice: pf.codice_lotto, articolo: pf.articoli_pf?.descrizione, data: pf.creato_il });
-    // MP diretti
-    const { data: cmp } = await supabase.from('pf_consumi_mp').select('lotto_mp_id').eq('lotto_pf_id', pf.id);
-    for (const c of (cmp || [])) { const mp = await findMP(c.lotto_mp_id); if (mp) catena.mp.push(mpRow(mp)); }
-    // SM -> loro MP
-    const { data: csm } = await supabase.from('pf_consumi_sm').select('lotto_sm_id').eq('lotto_pf_id', pf.id);
-    for (const c of (csm || [])) { const sm = await findSM(c.lotto_sm_id); if (sm) await espandiSM(sm); }
-    // DDT
-    const { data: righe } = await supabase.from('spedizioni_righe').select('spedizione_id').eq('lotto_pf_id', pf.id);
-    for (const r of (righe || [])) {
-      const { data: sp } = await supabase.from('spedizioni').select('*').eq('id', r.spedizione_id).maybeSingle();
-      if (sp) catena.ddt.push({ ddt: sp.ddt_numero, cliente: sp.cliente, data: sp.data_spedizione });
+  async function cercaPerCodice(tipo) {
+    const config = tables[tipo];
+    const { data, error } = await supabase.from(config.table).select(config.select).eq('codice_lotto', codice).maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  function aggiungiLotto(tipo, lotto) {
+    if (!lotto) return null;
+    const key = `${tipo}:${lotto.id}`;
+    if (!legami.has(key)) {
+      const descrizione = lotto.materiali?.descrizione || lotto.articoli_pf?.descrizione || '';
+      legami.set(key, { id: lotto.id, tipo, codice: lotto.codice_lotto, descrizione, record: lotto });
+      coda.push(key);
+    }
+    return key;
+  }
+
+  async function aggiungiRelazione(tipoOrigine, idOrigine, tipoDestinazione, idDestinazione, quantita, unita_misura) {
+    const [origine, destinazione] = await Promise.all([
+      caricaLotto(tipoOrigine, idOrigine),
+      caricaLotto(tipoDestinazione, idDestinazione),
+    ]);
+    if (!origine || !destinazione) return;
+    const da = aggiungiLotto(tipoOrigine, origine);
+    const a = aggiungiLotto(tipoDestinazione, destinazione);
+    const key = `${da}>${a}`;
+    if (!legami.has(key)) {
+      legami.set(key, {
+        da, a,
+        quantita: Number(quantita) || 0,
+        unita_misura: unita_misura || '',
+      });
     }
   }
-  async function espandiSM(sm) {
-    catena.sm.push({ codice: sm.codice_lotto, tipo: sm.materiali?.descrizione || '', lav: sm.lavorazione, data: sm.creato_il });
-    const { data: cmp } = await supabase.from('sm_consumi_mp').select('lotto_mp_id').eq('lotto_sm_id', sm.id);
-    for (const c of (cmp || [])) { const mp = await findMP(c.lotto_mp_id); if (mp) catena.mp.push(mpRow(mp)); }
-  }
-  const mpRow = (mp) => ({ codice: mp.codice_lotto, ddt: mp.ddt_numero, materiale: mp.materiali?.descrizione, fornitore: mp.fornitori?.ragione_sociale, data: mp.ddt_data });
 
-  if (codice.startsWith('PF-')) {
-    const { data } = await supabase.from('lotti_pf').select('*,articoli_pf(descrizione)').eq('codice_lotto', codice).maybeSingle();
-    await espandiPF(data);
-  } else if (codice.startsWith('SM-')) {
-    const { data } = await supabase.from('lotti_sm').select('*,materiali(codice,descrizione)').eq('codice_lotto', codice).maybeSingle();
-    if (data) await espandiSM(data);
-  } else {
-    // MP: trova a valle SM e PF che lo usano
-    const { data: mp } = await supabase.from('lotti_mp').select('*,fornitori(ragione_sociale),materiali(descrizione)').eq('codice_lotto', codice).maybeSingle();
-    if (mp) {
-      catena.mp.push(mpRow(mp));
-      const { data: usedSm } = await supabase.from('sm_consumi_mp').select('lotto_sm_id').eq('lotto_mp_id', mp.id);
-      for (const u of (usedSm || [])) { const sm = await findSM(u.lotto_sm_id); if (sm) catena.sm.push({ codice: sm.codice_lotto, tipo: sm.materiali?.descrizione || '', lav: sm.lavorazione, data: sm.creato_il }); }
-      const { data: usedPf } = await supabase.from('pf_consumi_mp').select('lotto_pf_id').eq('lotto_mp_id', mp.id);
-      for (const u of (usedPf || [])) { const pf = await findPF(u.lotto_pf_id); if (pf) catena.pf.push({ codice: pf.codice_lotto, articolo: pf.articoli_pf?.descrizione, data: pf.creato_il }); }
+  const tipoRadice = codice.startsWith('PF-') ? 'PF' : codice.startsWith('SM-') ? 'SM' : 'MP';
+  const radice = await cercaPerCodice(tipoRadice);
+  if (!radice) return res.status(404).json({ error: 'Lotto non trovato' });
+  aggiungiLotto(tipoRadice, radice);
+
+  async function leggiRighe(tabella, colonne, colonnaFiltro, id) {
+    const { data, error } = await supabase.from(tabella).select(colonne).eq(colonnaFiltro, id);
+    if (error) throw error;
+    return data || [];
+  }
+
+  while (coda.length) {
+    const key = coda.shift();
+    if (visitati.has(key)) continue;
+    visitati.add(key);
+    const nodo = legami.get(key);
+    const lotto = nodo.record;
+
+    if (nodo.tipo === 'MP') {
+      const [consumiSM, consumiPF] = await Promise.all([
+        leggiRighe('sm_consumi_mp', 'lotto_sm_id,quantita,unita_misura', 'lotto_mp_id', lotto.id),
+        leggiRighe('pf_consumi_mp', 'lotto_pf_id,quantita,unita_misura', 'lotto_mp_id', lotto.id),
+      ]);
+      for (const riga of consumiSM) await aggiungiRelazione('MP', lotto.id, 'SM', riga.lotto_sm_id, riga.quantita, riga.unita_misura);
+      for (const riga of consumiPF) await aggiungiRelazione('MP', lotto.id, 'PF', riga.lotto_pf_id, riga.quantita, riga.unita_misura);
+    } else if (nodo.tipo === 'SM') {
+      const [consumiMP, originiSM, usiSM, consumiPF] = await Promise.all([
+        leggiRighe('sm_consumi_mp', 'lotto_mp_id,quantita,unita_misura', 'lotto_sm_id', lotto.id),
+        leggiRighe('sm_consumi_sm', 'lotto_sm_origine_id,quantita,unita_misura', 'lotto_sm_id', lotto.id),
+        leggiRighe('sm_consumi_sm', 'lotto_sm_id,quantita,unita_misura', 'lotto_sm_origine_id', lotto.id),
+        leggiRighe('pf_consumi_sm', 'lotto_pf_id,quantita,unita_misura', 'lotto_sm_id', lotto.id),
+      ]);
+      for (const riga of consumiMP) await aggiungiRelazione('MP', riga.lotto_mp_id, 'SM', lotto.id, riga.quantita, riga.unita_misura);
+      for (const riga of originiSM) await aggiungiRelazione('SM', riga.lotto_sm_origine_id, 'SM', lotto.id, riga.quantita, riga.unita_misura);
+      for (const riga of usiSM) await aggiungiRelazione('SM', lotto.id, 'SM', riga.lotto_sm_id, riga.quantita, riga.unita_misura);
+      for (const riga of consumiPF) await aggiungiRelazione('SM', lotto.id, 'PF', riga.lotto_pf_id, riga.quantita, riga.unita_misura);
+    } else {
+      const [consumiMP, consumiSM, spedizioni] = await Promise.all([
+        leggiRighe('pf_consumi_mp', 'lotto_mp_id,quantita,unita_misura', 'lotto_pf_id', lotto.id),
+        leggiRighe('pf_consumi_sm', 'lotto_sm_id,quantita,unita_misura', 'lotto_pf_id', lotto.id),
+        leggiRighe('spedizioni_righe', 'spedizione_id,quantita,unita_misura', 'lotto_pf_id', lotto.id),
+      ]);
+      for (const riga of consumiMP) await aggiungiRelazione('MP', riga.lotto_mp_id, 'PF', lotto.id, riga.quantita, riga.unita_misura);
+      for (const riga of consumiSM) await aggiungiRelazione('SM', riga.lotto_sm_id, 'PF', lotto.id, riga.quantita, riga.unita_misura);
+      for (const riga of spedizioni) {
+        const { data: spedizione, error } = await supabase.from('spedizioni').select('*').eq('id', riga.spedizione_id).maybeSingle();
+        if (error) throw error;
+        if (!spedizione) continue;
+        const ddtKey = `DDT:${spedizione.id}`;
+        if (!legami.has(ddtKey)) {
+          legami.set(ddtKey, { id: spedizione.id, tipo: 'DDT', codice: spedizione.ddt_numero, descrizione: spedizione.cliente || '' });
+        }
+        const edgeKey = `${key}>${ddtKey}`;
+        if (!legami.has(edgeKey)) legami.set(edgeKey, { da: key, a: ddtKey, quantita: Number(riga.quantita) || 0, unita_misura: riga.unita_misura || '' });
+      }
     }
   }
 
-  // dedup
-  const uniq = (arr, k) => Array.from(new Map(arr.map((x) => [x[k], x])).values());
-  catena.mp = uniq(catena.mp, 'codice');
-  catena.sm = uniq(catena.sm, 'codice');
-  catena.pf = uniq(catena.pf, 'codice');
-  catena.ddt = uniq(catena.ddt, 'ddt');
+  const nodiPerKey = new Map([...legami.entries()].filter(([key]) => !key.includes('>')));
+  const nodi = [...nodiPerKey.values()].map((nodo) => ({
+      id: nodo.id,
+      tipo: nodo.tipo,
+      codice: nodo.codice,
+      descrizione: nodo.descrizione,
+      meta: nodo.tipo === 'MP'
+        ? { fornitore: nodo.record.fornitori?.ragione_sociale || '', ddt: nodo.record.ddt_numero || '' }
+        : nodo.tipo === 'SM'
+          ? { lavorazione: nodo.record.lavorazione }
+          : nodo.tipo === 'PF'
+            ? { articolo: nodo.record.articoli_pf?.descrizione || '' }
+            : {},
+    }));
+  const passaggi = [...legami.values()]
+    .filter((elemento) => elemento.da && elemento.a)
+    .map((elemento) => ({
+      da: nodiPerKey.get(elemento.da),
+      a: nodiPerKey.get(elemento.a),
+      quantita: elemento.quantita,
+      unita_misura: elemento.unita_misura,
+    }))
+    .filter((elemento) => elemento.da && elemento.a)
+    .map((elemento) => ({
+      da: { tipo: elemento.da.tipo, codice: elemento.da.codice, descrizione: elemento.da.descrizione },
+      a: { tipo: elemento.a.tipo, codice: elemento.a.codice, descrizione: elemento.a.descrizione },
+      quantita: elemento.quantita,
+      unita_misura: elemento.unita_misura,
+    }))
+    .sort((sinistra, destra) => {
+      const ordine = { MP: 0, SM: 1, PF: 2, DDT: 3 };
+      return ordine[sinistra.a.tipo] - ordine[destra.a.tipo]
+        || ordine[sinistra.da.tipo] - ordine[destra.da.tipo]
+        || sinistra.da.codice.localeCompare(destra.da.codice);
+    });
+  const listaNodi = [...nodiPerKey.values()];
 
-  res.json(catena);
+  res.json({
+    query: codice,
+    nodi,
+    passaggi,
+    mp: listaNodi.filter((nodo) => nodo.tipo === 'MP').map((nodo) => ({
+      codice: nodo.codice,
+      materiale: nodo.record.materiali?.descrizione || '',
+      fornitore: nodo.record.fornitori?.ragione_sociale || '',
+    })),
+    sm: listaNodi.filter((nodo) => nodo.tipo === 'SM').map((nodo) => ({
+      codice: nodo.codice,
+      tipo: nodo.record.materiali?.descrizione || '',
+      lav: nodo.record.lavorazione,
+    })),
+    pf: listaNodi.filter((nodo) => nodo.tipo === 'PF').map((nodo) => ({
+      codice: nodo.codice,
+      articolo: nodo.record.articoli_pf?.descrizione || '',
+    })),
+    ddt: listaNodi.filter((nodo) => nodo.tipo === 'DDT').map((nodo) => ({
+      ddt: nodo.codice,
+      cliente: nodo.descrizione,
+    })),
+  });
 }));
 
 // ============================================================
@@ -710,7 +840,8 @@ async function verificaDisponibilita(tabella, righe, idCampo) {
 }
 
 async function scalaGiacenza(tabella, id, qty) {
-  const { data: r } = await supabase.from(tabella).select('giacenza,quantita').eq('id', id).maybeSingle();
+  const { data: r, error: selectError } = await supabase.from(tabella).select('giacenza,quantita').eq('id', id).maybeSingle();
+  if (selectError) throw selectError;
   if (!r) return;
   if (!Number.isFinite(qty) || qty < 0 || qty > Number(r.giacenza)) {
     throw new Error('La quantità richiesta supera la disponibilità del lotto');
@@ -718,7 +849,8 @@ async function scalaGiacenza(tabella, id, qty) {
   const nuova = Math.max(0, Number(r.giacenza) - qty);
   const update = { giacenza: nuova };
   if (nuova <= 0) update.stato = tabella === 'lotti_mp' ? 'Esaurito' : 'Esaurito';
-  await supabase.from(tabella).update(update).eq('id', id);
+  const { error: updateError } = await supabase.from(tabella).update(update).eq('id', id);
+  if (updateError) throw updateError;
 }
 
 
