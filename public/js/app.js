@@ -11,6 +11,7 @@ const STATO_PILL = {
   Attivo: 'pill-verde', Sospeso: 'pill-amber', Bozza: 'pill-grigio',
 };
 const STORICO_ETICHETTE = { mp: [], sm: [], pf: [] };
+const PF_ART_OPTIONS = [];
 
 // ---- fetch helper ----
 async function api(url, opts = {}) {
@@ -575,6 +576,8 @@ async function loadPF() {
   try {
     const [art, mpLotti, smLotti, lotti] = await Promise.all([api('/articoli'), api('/lotti-mp'), api('/lotti-sm'), api('/lotti-pf')]);
     fillSelect('pf-art', art.map((a) => ({ v: a.id, t: `${a.codice} · ${a.descrizione}` })));
+    PF_ART_OPTIONS.splice(0, PF_ART_OPTIONS.length, ...Array.from(document.getElementById('pf-art').options, (option) => option.cloneNode(true)));
+    filterPFArticles(val('pf-art-search'));
     window.__mpLotti = mpLotti; window.__smLotti = smLotti;
     fillSelect('pf-mp-sel', mpLotti.map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto MP…');
     fillSelect('pf-sm-sel', smLotti.filter((l) => l.giacenza > 0).map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.materiali?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto SM…');
@@ -585,6 +588,21 @@ async function loadPF() {
       `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td><td><div class="history-actions"><button class="btn btn-primary btn-sm" aria-label="Rivedi etichetta ${esc(l.codice_lotto)}" onclick="rivediEtichetta('pf','${esc(l.id)}')"><i class="ti ti-eye"></i></button><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('pf','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></div></td></tr>`
     ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun ordine</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
+}
+function filterPFArticles(query) {
+  const select = document.getElementById('pf-art');
+  if (!select) return;
+  const selectedValue = select.value;
+  const normalizedQuery = String(query || '').trim().toLocaleLowerCase('it');
+  const matches = PF_ART_OPTIONS.filter((option) => option.textContent.toLocaleLowerCase('it').includes(normalizedQuery));
+  select.replaceChildren(...matches.map((option) => option.cloneNode(true)));
+  if (!matches.length) {
+    const noResults = new Option('Nessun articolo trovato', '');
+    noResults.disabled = true;
+    select.add(noResults);
+    return;
+  }
+  select.value = matches.some((option) => option.value === selectedValue) ? selectedValue : matches[0].value;
 }
 function addPFConsumoMPById(id) {
   if (!id) return;
