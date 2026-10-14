@@ -6,9 +6,12 @@
     <img id="barcode" src="<%= image %>" />
     <div class="barcode-text"><%=barcodeText %></div>
 
-    <div class="footer-mp">
+    <div class="footer-mp footer-pf">
         <span>LOTTO: <%= lot %></span>
-        <span>QUANTITA: <%= quantity %> <%= unit %></span>
+        <div class="footer-pf-quantity">
+            <span>QUANTITA: <%= quantity %> <%= unit %></span>
+            <span>CONFEZIONE: <%= confezione %> <%= unita_misura_confezione %></span>
+        </div>
     </div>
     <div class="food-contact-images">
         <% if (foodContactSymbol) { %><img class="food-contact-symbol" src="/barcode-assets/food-contact-symbol.png" alt="Idoneo al contatto con alimenti"><% } %>
@@ -22,4 +25,3 @@
     <% if (foodContactMunicipality) { %><div class="food-contact-text">Verifica le disposizioni del tuo comune</div><% } %>
 
 </div>
-

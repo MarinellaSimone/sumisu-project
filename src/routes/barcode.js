@@ -44,6 +44,8 @@ router.get("/generate", async (req, res) => {
             date = new Date(),
             quantity,
             unit,
+            confezione = "0",
+            unita_misura_confezione = "pz",
             lot,
             foodContactSymbol = "false",
             foodContact20Pap = "false",
@@ -104,6 +106,8 @@ router.get("/generate", async (req, res) => {
             barcodeText: barcode.human,
             lot,
             quantity: Number(quantity),
+            confezione: Number(confezione),
+            unita_misura_confezione,
             date: BarcodeCodec.formatDate(date),
             image,
             unit:unit
