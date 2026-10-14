@@ -9,7 +9,7 @@ function requireAuth(req, res, next) {
 }
 
 // Richiede ruolo admin (per Spedizioni, Anagrafiche, Tracciabilità, Utenti)
-function requireAdmin(req, res, next) {
+function requireAdmin(req, res, next) { 
   if (req.session && req.session.user && req.session.user.ruolo === 'admin') return next();
   if (req.originalUrl.startsWith('/api/')) {
     return res.status(403).json({ error: 'Accesso riservato agli amministratori', session: JSON.stringify(req.session) });
