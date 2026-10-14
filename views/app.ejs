@@ -323,7 +323,7 @@
             </div>
             <div class="card">
               <div class="card-title"><i class="ti ti-history"></i>Storico DDT</div>
-              <div class="tw"><table><thead><tr><th>N° DDT</th><th>Cliente</th><th>Data</th><th>Stato</th></tr></thead><tbody id="sped-storico"></tbody></table></div>
+              <div class="tw"><table><thead><tr><th>N° DDT</th><th>Cliente</th><th>Data</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="sped-storico"></tbody></table></div>
             </div>
           </div>
         </div>
@@ -455,6 +455,19 @@
 </div>
 
 <div class="loading-overlay" id="loading-overlay" style="display:none;"><div class="loading-box"><div class="spinner"></div><span id="loading-msg">Salvataggio…</span></div></div>
+
+<div id="trace-info-modal" class="trace-info-modal" onclick="if(event.target===this)closeTraceInfo()">
+  <section class="trace-info-dialog" role="dialog" aria-modal="true" aria-labelledby="trace-info-title">
+    <header class="trace-info-header">
+      <div>
+        <div class="trace-info-eyebrow">Dettaglio entità</div>
+        <h2 id="trace-info-title"></h2>
+      </div>
+      <button class="trace-info-close" type="button" aria-label="Chiudi informazioni" onclick="closeTraceInfo()"><i class="ti ti-x"></i></button>
+    </header>
+    <dl id="trace-info-content" class="trace-info-content"></dl>
+  </section>
+</div>
 
 <script>
   window.__USER__ = <%- JSON.stringify(user) %>;

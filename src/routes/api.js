@@ -11,6 +11,64 @@ const wrap = (fn) => (req, res) => fn(req, res).catch((e) => {
   res.status(500).json({ error: e.message || 'Errore server' });
 });
 
+function dettagliEntita(tipo, record, righe = []) {
+  if (tipo === 'MP') {
+    return {
+      'Codice materiale': record.materiali?.codice,
+      Materiale: record.materiali?.descrizione,
+      Fornitore: record.fornitori?.ragione_sociale,
+      'DDT fornitore': record.ddt_numero,
+      'Data DDT': record.ddt_data,
+      Quantità: record.quantita,
+      'Unità di misura': record.unita_misura,
+      Giacenza: record.giacenza,
+      Pedane: record.n_pedane,
+      Stato: record.stato,
+      Note: record.note,
+      'Creato il': record.creato_il,
+    };
+  }
+  if (tipo === 'SM') {
+    return {
+      'Codice materiale': record.materiali?.codice,
+      'Tipo semilavorato': record.materiali?.descrizione,
+      Lavorazione: record.lavorazione,
+      Fornitore: record.fornitori?.ragione_sociale,
+      'DDT fornitore': record.ddt_numero,
+      'Data DDT': record.ddt_data,
+      Quantità: record.quantita,
+      'Unità di misura': record.unita_misura,
+      Giacenza: record.giacenza,
+      'Data lavorazione': record.data_lavorazione,
+      Stato: record.stato,
+      Note: record.note,
+      'Creato il': record.creato_il,
+    };
+  }
+  if (tipo === 'PF') {
+    return {
+      Articolo: record.articoli_pf?.descrizione,
+      'Codice articolo': record.articoli_pf?.codice,
+      Quantità: record.quantita,
+      'Unità di misura': record.unita_misura,
+      Giacenza: record.giacenza,
+      'Data produzione': record.data_produzione,
+      Stato: record.stato,
+      Note: record.note,
+      'Creato il': record.creato_il,
+    };
+  }
+  return {
+    Cliente: record.cliente,
+    'Data spedizione': record.data_spedizione,
+    Vettore: record.vettore,
+    'Lotti PF': righe.join(', '),
+    Stato: record.stato,
+    Note: record.note,
+    'Creato il': record.creato_il,
+  };
+}
+
 // ============================================================
 // DASHBOARD
 // ============================================================
@@ -438,6 +496,47 @@ router.get('/magazzino/:tipo', wrap(async (req, res) => {
   return res.json(rows);
 }));
 
+router.get('/info/:tipo/:codice', wrap(async (req, res) => {
+  const tipo = req.params.tipo.toUpperCase();
+  const codice = req.params.codice.trim();
+  const tabelle = {
+    MP: { table: 'lotti_mp', select: '*,fornitori(ragione_sociale),materiali(codice,descrizione)' },
+    SM: { table: 'lotti_sm', select: '*,fornitori(ragione_sociale),materiali(codice,descrizione)' },
+    PF: { table: 'lotti_pf', select: '*,articoli_pf(codice,descrizione)' },
+    DDT: { table: 'spedizioni', select: '*' },
+  };
+  const config = tabelle[tipo];
+  if (!config) return res.status(400).json({ error: 'Tipo entità non valido' });
+  if (tipo === 'DDT' && req.session.user.ruolo !== 'admin') {
+    return res.status(403).json({ error: 'Accesso riservato agli amministratori' });
+  }
+
+  const colonna = tipo === 'DDT' ? 'ddt_numero' : 'codice_lotto';
+  const { data: record, error } = await supabase
+    .from(config.table)
+    .select(config.select)
+    .eq(colonna, codice)
+    .maybeSingle();
+  if (error) throw error;
+  if (!record) return res.status(404).json({ error: `${tipo} non trovato` });
+
+  let righe = [];
+  if (tipo === 'DDT') {
+    const { data, error: righeError } = await supabase
+      .from('spedizioni_righe')
+      .select('quantita,unita_misura,lotti_pf(codice_lotto,articoli_pf(descrizione))')
+      .eq('spedizione_id', record.id);
+    if (righeError) throw righeError;
+    righe = (data || []).map((riga) => {
+      const lotto = riga.lotti_pf;
+      if (!lotto) return null;
+      return `${lotto.codice_lotto} (${lotto.articoli_pf?.descrizione || 'PF'}) · ${Number(riga.quantita) || 0} ${riga.unita_misura || ''}`.trim();
+    }).filter(Boolean);
+  }
+
+  res.json({ tipo, codice, dettagli: dettagliEntita(tipo, record, righe) });
+}));
+
 router.patch('/lotti-mp/:id', wrap(async (req, res) => {
   const { giacenza, quantita, stato } = req.body || {};
   const update = {};
@@ -590,15 +689,15 @@ router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
   const tables = {
     MP: {
       table: 'lotti_mp',
-      select: '*,fornitori(ragione_sociale),materiali(descrizione)',
+      select: '*,fornitori(ragione_sociale),materiali(codice,descrizione)',
     },
     SM: {
       table: 'lotti_sm',
-      select: '*,materiali(codice,descrizione)',
+      select: '*,materiali(codice,descrizione),fornitori(ragione_sociale)',
     },
     PF: {
       table: 'lotti_pf',
-      select: '*,articoli_pf(descrizione)',
+      select: '*,articoli_pf(codice,descrizione)',
     },
   };
 
@@ -723,6 +822,7 @@ router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
       tipo: 'DDT',
       codice: spedizione.ddt_numero,
       descrizione: spedizione.cliente || '',
+      record: spedizione,
     });
     ddtVisitati.add(ddtKey);
 
@@ -842,6 +942,7 @@ router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
             tipo: 'DDT',
             codice: spedizione.ddt_numero,
             descrizione: spedizione.cliente || '',
+            record: spedizione,
           });
         }
 
@@ -906,24 +1007,39 @@ router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
     [...legami.entries()].filter(([key]) => !key.includes('>'))
   );
 
-  const nodi = [...nodiPerKey.values()].map((nodo) => ({
-    id: nodo.id,
-    tipo: nodo.tipo,
-    codice: nodo.codice,
-    descrizione: nodo.descrizione,
-    meta: nodo.tipo === 'MP'
-      ? {
-          fornitore: nodo.record.fornitori?.ragione_sociale || '',
-          ddt: nodo.record.ddt_numero || '',
-        }
-      : nodo.tipo === 'SM'
-        ? { lavorazione: nodo.record.lavorazione }
-        : nodo.tipo === 'PF'
-          ? {
-              articolo: nodo.record.articoli_pf?.descrizione || '',
-            }
-          : {},
-  }));
+  const nodi = [...nodiPerKey.values()].map((nodo) => {
+    const record = nodo.record || {};
+    const righeSpedizione = nodo.tipo === 'DDT'
+      ? [...legami.values()]
+        .filter((elemento) => elemento.da && elemento.a === `DDT:${nodo.id}`)
+        .map((elemento) => {
+          const lotto = nodiPerKey.get(elemento.da);
+          return lotto
+            ? `${lotto.codice} · ${Number(elemento.quantita) || 0} ${elemento.unita_misura || ''}`.trim()
+            : null;
+        })
+        .filter(Boolean)
+      : [];
+    return {
+      id: nodo.id,
+      tipo: nodo.tipo,
+      codice: nodo.codice,
+      descrizione: nodo.descrizione,
+      dettagli: dettagliEntita(nodo.tipo, record, righeSpedizione),
+      meta: nodo.tipo === 'MP'
+        ? {
+            fornitore: record.fornitori?.ragione_sociale || '',
+            ddt: record.ddt_numero || '',
+          }
+        : nodo.tipo === 'SM'
+          ? { lavorazione: record.lavorazione }
+          : nodo.tipo === 'PF'
+            ? {
+                articolo: record.articoli_pf?.descrizione || '',
+              }
+            : {},
+    };
+  });
 
   const ordine = { PF: 0, SM: 1, MP: 2, DDT: 3 };
 

@@ -12,6 +12,9 @@ const STATO_PILL = {
 };
 const STORICO_ETICHETTE = { mp: [], sm: [], pf: [] };
 const PF_ART_OPTIONS = [];
+let TRACE_INFO_NODES = [];
+let TRACE_INFO_INDEX = new Map();
+const ENTITY_INFO_CACHE = new Map();
 
 // ---- fetch helper ----
 async function api(url, opts = {}) {
@@ -113,8 +116,9 @@ async function loadMP() {
     fillSelect('mp-materiale', mat.map((m) => ({ v: m.id, t: `${m.codice} · ${m.descrizione}` })));
     if (!document.getElementById('mp-data').value) document.getElementById('mp-data').value = today();
     STORICO_ETICHETTE.mp = lotti;
+    lotti.forEach((lotto) => cacheEntityInfo('MP', lotto.codice_lotto, entityInfoFromRecord('MP', lotto)));
     document.getElementById('mp-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td>${esc(l.ddt_numero || '—')}</td><td><div class="history-actions"><button class="btn btn-primary btn-sm" aria-label="Rivedi etichetta ${esc(l.codice_lotto)}" onclick="rivediEtichetta('mp','${esc(l.id)}')"><i class="ti ti-eye"></i></button><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('mp','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></div></td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${l.ddt_data ? new Date(l.ddt_data).toLocaleDateString('it-IT') : '—'}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td>${esc(l.ddt_numero || '—')}</td><td><div class="history-actions">${entityInfoButton('MP', l.codice_lotto)}<button class="btn btn-primary btn-sm" aria-label="Rivedi etichetta ${esc(l.codice_lotto)}" onclick="rivediEtichetta('mp','${esc(l.id)}')"><i class="ti ti-eye"></i></button><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('mp','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></div></td></tr>`
     ).join('') || '<tr><td colspan="7"><div class="empty"><p>Nessun ricevimento</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -380,8 +384,9 @@ async function loadSM() {
     if (!document.getElementById('sm-data').value) document.getElementById('sm-data').value = today();
     smConsumi = []; smConsumiSM = []; renderSMConsumi(); renderSMConsumiSM();
     STORICO_ETICHETTE.sm = lotti;
+    lotti.forEach((lotto) => cacheEntityInfo('SM', lotto.codice_lotto, entityInfoFromRecord('SM', lotto)));
     document.getElementById('sm-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td><div class="history-actions"><button class="btn btn-primary btn-sm" aria-label="Rivedi etichetta ${esc(l.codice_lotto)}" onclick="rivediEtichetta('sm','${esc(l.id)}')"><i class="ti ti-eye"></i></button><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('sm','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></div></td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.materiali?.descrizione || '')}</td><td>${pill(l.lavorazione === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td><td>${fmt(l.giacenza)} ${esc(l.unita_misura)}</td><td>${statoPill(l.stato)}</td><td><div class="history-actions">${entityInfoButton('SM', l.codice_lotto)}<button class="btn btn-primary btn-sm" aria-label="Rivedi etichetta ${esc(l.codice_lotto)}" onclick="rivediEtichetta('sm','${esc(l.id)}')"><i class="ti ti-eye"></i></button><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('sm','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></div></td></tr>`
     ).join('') || '<tr><td colspan="6"><div class="empty"><p>Nessuna lavorazione</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -584,8 +589,9 @@ async function loadPF() {
     if (!document.getElementById('pf-data').value) document.getElementById('pf-data').value = today();
     pfConsumiMP = []; pfConsumiSM = []; renderPFConsumi();
     STORICO_ETICHETTE.pf = lotti;
+    lotti.forEach((lotto) => cacheEntityInfo('PF', lotto.codice_lotto, entityInfoFromRecord('PF', lotto)));
     document.getElementById('pf-storico').innerHTML = lotti.map((l) =>
-      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td><td><div class="history-actions"><button class="btn btn-primary btn-sm" aria-label="Rivedi etichetta ${esc(l.codice_lotto)}" onclick="rivediEtichetta('pf','${esc(l.id)}')"><i class="ti ti-eye"></i></button><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('pf','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></div></td></tr>`
+      `<tr><td class="mono">${esc(l.codice_lotto)}</td><td>${esc(l.articoli_pf?.descrizione || '')}</td><td>${fmt(l.quantita)}</td><td>${statoPill(l.stato)}</td><td><div class="history-actions">${entityInfoButton('PF', l.codice_lotto)}<button class="btn btn-primary btn-sm" aria-label="Rivedi etichetta ${esc(l.codice_lotto)}" onclick="rivediEtichetta('pf','${esc(l.id)}')"><i class="ti ti-eye"></i></button><button class="btn btn-danger btn-sm" aria-label="Elimina lotto ${esc(l.codice_lotto)}" onclick="eliminaLottoStorico('pf','${esc(l.id)}',this)"><i class="ti ti-trash"></i></button></div></td></tr>`
     ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessun ordine</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -710,8 +716,9 @@ function renderMagRows(tipo, rows) {
         <td>${statoPill(r.stato)}</td>
         <td>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-verde" style="padding:6px 10px;font-size:12px;" onclick="salvaMagazzino('${esc(tipo)}','${esc(r.id)}', this.closest('tr'))"><i class="ti ti-device-floppy"></i>Salva</button>
-            <button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="eliminaMagazzino('${esc(tipo)}','${esc(r.id)}')"><i class="ti ti-trash"></i>Elimina</button>
+            ${entityInfoButton(tipo.toUpperCase(), r.codice)}
+            <button class="btn btn-verde" style="padding:6px 10px;font-size:12px;" onclick="salvaMagazzino('${esc(tipo)}','${esc(r.id)}', this.closest('tr'))"><i class="ti ti-device-floppy"></i></button>
+            <button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="eliminaMagazzino('${esc(tipo)}','${esc(r.id)}')"><i class="ti ti-trash"></i></button>
           </div>
         </td>
       </tr>
@@ -729,6 +736,7 @@ async function loadMag(tipo) {
   try {
     MAG_STATE.tipo = tipo;
     MAG_STATE.rows = await api('/magazzino/' + tipo);
+    MAG_STATE.rows.forEach((lotto) => cacheEntityInfo(tipo.toUpperCase(), lotto.codice, null, true));
     applyMagFilter();
   } catch (e) { showToast(e.message, 'err'); }
 }
@@ -797,9 +805,15 @@ async function loadSped() {
     fillSelect('sped-pf-sel', spedibili.map((l) => ({ v: l.id, t: `${l.codice_lotto} · ${l.articoli_pf?.descrizione || ''} · ${fmt(l.giacenza)} ${l.unita_misura}` })), false, 'Aggiungi lotto PF…');
     if (!document.getElementById('sped-data').value) document.getElementById('sped-data').value = today();
     spedRighe = []; renderSpedRighe();
+    storico.forEach((spedizione) => cacheEntityInfo(
+      'DDT',
+      spedizione.ddt_numero,
+      entityInfoFromRecord('DDT', spedizione),
+      true
+    ));
     document.getElementById('sped-storico').innerHTML = storico.map((s) =>
-      `<tr><td class="mono">${esc(s.ddt_numero)}</td><td>${esc(s.cliente)}</td><td>${s.data_spedizione ? new Date(s.data_spedizione).toLocaleDateString('it-IT') : '—'}</td><td>${statoPill(s.stato)}</td></tr>`
-    ).join('') || '<tr><td colspan="4"><div class="empty"><p>Nessuna spedizione</p></div></td></tr>';
+      `<tr><td class="mono">${esc(s.ddt_numero)}</td><td>${esc(s.cliente)}</td><td>${s.data_spedizione ? new Date(s.data_spedizione).toLocaleDateString('it-IT') : '—'}</td><td>${statoPill(s.stato)}</td><td>${entityInfoButton('DDT', s.ddt_numero)}</td></tr>`
+    ).join('') || '<tr><td colspan="5"><div class="empty"><p>Nessuna spedizione</p></div></td></tr>';
   } catch (e) { showToast(e.message, 'err'); }
 }
 function addSpedRigaById(id) {
@@ -1082,6 +1096,151 @@ async function addArticolo(btn) {
 // ============================================================
 // Tracciabilità
 // ============================================================
+function traceInfoButton(tipo, codice) {
+  const index = TRACE_INFO_INDEX.get(`${tipo}:${codice}`);
+  if (index === undefined) return '';
+  return `<button class="btn btn-sm trace-info-btn" type="button" aria-label="Informazioni ${esc(tipo)} ${esc(codice)}" title="Mostra informazioni" onclick="showTraceInfo(${index},this)"><i class="ti ti-info-circle"></i></button>`;
+}
+
+function entityInfoButton(tipo, codice) {
+  return `<button class="btn btn-sm trace-info-btn" type="button" aria-label="Informazioni ${esc(tipo)} ${esc(codice)}" title="Mostra informazioni" onclick="showStoredEntityInfo('${esc(tipo)}','${esc(codice)}',this)"><i class="ti ti-info-circle"></i></button>`;
+}
+
+function entityInfoFromRecord(tipo, record) {
+  if (tipo === 'MP') {
+    return {
+      'Codice materiale': record.materiali?.codice,
+      Materiale: record.materiali?.descrizione,
+      Fornitore: record.fornitori?.ragione_sociale,
+      'DDT fornitore': record.ddt_numero,
+      'Data DDT': record.ddt_data,
+      Quantità: record.quantita,
+      'Unità di misura': record.unita_misura,
+      Giacenza: record.giacenza,
+      Pedane: record.n_pedane,
+      Stato: record.stato,
+      Note: record.note,
+      'Creato il': record.creato_il,
+    };
+  }
+  if (tipo === 'SM') {
+    return {
+      'Codice materiale': record.materiali?.codice,
+      'Tipo semilavorato': record.materiali?.descrizione,
+      Lavorazione: record.lavorazione,
+      Fornitore: record.fornitori?.ragione_sociale,
+      'DDT fornitore': record.ddt_numero,
+      'Data DDT': record.ddt_data,
+      Quantità: record.quantita,
+      'Unità di misura': record.unita_misura,
+      Giacenza: record.giacenza,
+      'Data lavorazione': record.data_lavorazione,
+      Stato: record.stato,
+      Note: record.note,
+      'Creato il': record.creato_il,
+    };
+  }
+  if (tipo === 'PF') {
+    return {
+      Articolo: record.articoli_pf?.descrizione,
+      'Codice articolo': record.articoli_pf?.codice,
+      Quantità: record.quantita,
+      'Unità di misura': record.unita_misura,
+      Giacenza: record.giacenza,
+      'Data produzione': record.data_produzione,
+      Stato: record.stato,
+      Note: record.note,
+      'Creato il': record.creato_il,
+    };
+  }
+  return {
+    Cliente: record.cliente,
+    'Data spedizione': record.data_spedizione,
+    Vettore: record.vettore,
+    Stato: record.stato,
+    Note: record.note,
+    'Creato il': record.creato_il,
+  };
+}
+
+function cacheEntityInfo(tipo, codice, dettagli, fetchOnClick = false) {
+  ENTITY_INFO_CACHE.set(`${tipo}:${codice}`, { dettagli, fetchOnClick });
+}
+
+function renderEntityInfo(tipo, codice, dettagli, trigger) {
+  const modal = document.getElementById('trace-info-modal');
+  const content = document.getElementById('trace-info-content');
+  document.getElementById('trace-info-title').textContent = `${tipo} · ${codice}`;
+  content.replaceChildren();
+
+  Object.entries(dettagli || {}).forEach(([label, value]) => {
+    if (value === null || value === undefined || value === '') return;
+    const row = document.createElement('div');
+    row.className = 'trace-info-row';
+    const name = document.createElement('dt');
+    name.textContent = label;
+    const detail = document.createElement('dd');
+    if (['Quantità', 'Giacenza', 'Pedane'].includes(label) && Number.isFinite(Number(value))) {
+      detail.textContent = Number(value).toLocaleString('it-IT');
+    } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value)) {
+      const date = new Date(value.length === 10 ? `${value}T00:00:00` : value);
+      detail.textContent = Number.isNaN(date.getTime())
+        ? value
+        : date.toLocaleString('it-IT', value.length === 10 ? { dateStyle: 'short' } : {});
+    } else {
+      detail.textContent = String(value);
+    }
+    row.append(name, detail);
+    content.appendChild(row);
+  });
+
+  if (!content.children.length) {
+    const empty = document.createElement('p');
+    empty.className = 'trace-info-empty';
+    empty.textContent = 'Non sono disponibili altre informazioni.';
+    content.appendChild(empty);
+  }
+
+  modal.classList.add('show');
+  modal.querySelector('.trace-info-close').focus();
+  modal._returnFocus = trigger;
+}
+
+function showTraceInfo(index, trigger) {
+  const node = TRACE_INFO_NODES[index];
+  if (!node) return showToast('Informazioni entità non disponibili', 'err');
+  renderEntityInfo(node.tipo, node.codice, node.dettagli, trigger);
+}
+
+async function showStoredEntityInfo(tipo, codice, trigger) {
+  const key = `${tipo}:${codice}`;
+  let cached = ENTITY_INFO_CACHE.get(key);
+  if (!cached || cached.fetchOnClick) {
+    renderEntityInfo(tipo, codice, { Caricamento: 'Recupero informazioni…' }, trigger);
+    try {
+      const result = await api(`/info/${encodeURIComponent(tipo)}/${encodeURIComponent(codice)}`);
+      cached = { dettagli: result.dettagli, fetchOnClick: false };
+      ENTITY_INFO_CACHE.set(key, cached);
+    } catch (e) {
+      renderEntityInfo(tipo, codice, { Errore: e.message }, trigger);
+      showToast(e.message, 'err');
+      return;
+    }
+  }
+  renderEntityInfo(tipo, codice, cached.dettagli, trigger);
+}
+
+function closeTraceInfo() {
+  const modal = document.getElementById('trace-info-modal');
+  if (!modal.classList.contains('show')) return;
+  modal.classList.remove('show');
+  if (modal._returnFocus?.isConnected) modal._returnFocus.focus();
+}
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeTraceInfo();
+});
+
 function setTraceView(view, button) {
   const tableView = view === 'table';
   document.getElementById('trace-table-view').style.display = tableView ? 'block' : 'none';
@@ -1257,6 +1416,31 @@ function renderTraceGraph(trace, rootCode) {
     const nodeTitle = document.createElementNS(ns, 'title');
     nodeTitle.textContent = [node.tipo, node.codice, description].filter(Boolean).join(' · ');
     group.appendChild(nodeTitle);
+
+    const info = document.createElementNS(ns, 'g');
+    info.setAttribute('class', 'trace-node-info');
+    info.setAttribute('role', 'button');
+    info.setAttribute('tabindex', '0');
+    info.setAttribute('aria-label', `Informazioni ${node.tipo} ${node.codice}`);
+    const infoCircle = document.createElementNS(ns, 'circle');
+    infoCircle.setAttribute('cx', position.x + nodeWidth - 19);
+    infoCircle.setAttribute('cy', position.y + 19);
+    infoCircle.setAttribute('r', '11');
+    info.appendChild(infoCircle);
+    const infoText = document.createElementNS(ns, 'text');
+    infoText.setAttribute('x', position.x + nodeWidth - 19);
+    infoText.setAttribute('y', position.y + 23);
+    infoText.textContent = 'i';
+    info.appendChild(infoText);
+    const nodeIndex = TRACE_INFO_INDEX.get(key);
+    info.addEventListener('click', () => showTraceInfo(nodeIndex, info));
+    info.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        showTraceInfo(nodeIndex, info);
+      }
+    });
+    group.appendChild(info);
     svg.appendChild(group);
   });
 
@@ -1276,19 +1460,21 @@ async function doTrace() {
   loading(true, 'Ricostruzione catena…');
   try {
     const c = await api('/traccia/' + encodeURIComponent(v));
+    TRACE_INFO_NODES = c.nodi || [];
+    TRACE_INFO_INDEX = new Map(TRACE_INFO_NODES.map((node, index) => [`${node.tipo}:${node.codice}`, index]));
     document.getElementById('trace-title').textContent = v;
     document.getElementById('trace-chain').innerHTML = c.passaggi.map((r) =>
-      `<tr><td><span class="pill ${r.da.tipo === 'MP' ? 'pill-verde' : r.da.tipo === 'SM' ? 'pill-viola' : 'pill-grigio'}">${esc(r.da.tipo)}</span> <span class="mono">${esc(r.da.codice)}</span>${r.da.descrizione ? `<div style="font-size:11px;color:var(--grigio);">${esc(r.da.descrizione)}</div>` : ''}</td><td><span class="pill ${r.a.tipo === 'PF' ? 'pill-grigio' : 'pill-viola'}">${esc(r.a.tipo)}</span> <span class="mono">${esc(r.a.codice)}</span>${r.a.descrizione ? `<div style="font-size:11px;color:var(--grigio);">${esc(r.a.descrizione)}</div>` : ''}</td><td>${fmt(r.quantita)} ${esc(r.unita_misura || '')}</td></tr>`
+      `<tr><td><span class="pill ${r.da.tipo === 'MP' ? 'pill-verde' : r.da.tipo === 'SM' ? 'pill-viola' : 'pill-grigio'}">${esc(r.da.tipo)}</span> <span class="mono">${esc(r.da.codice)}</span> ${traceInfoButton(r.da.tipo, r.da.codice)}${r.da.descrizione ? `<div style="font-size:11px;color:var(--grigio);">${esc(r.da.descrizione)}</div>` : ''}</td><td><span class="pill ${r.a.tipo === 'PF' ? 'pill-grigio' : 'pill-viola'}">${esc(r.a.tipo)}</span> <span class="mono">${esc(r.a.codice)}</span> ${traceInfoButton(r.a.tipo, r.a.codice)}${r.a.descrizione ? `<div style="font-size:11px;color:var(--grigio);">${esc(r.a.descrizione)}</div>` : ''}</td><td>${fmt(r.quantita)} ${esc(r.unita_misura || '')}</td></tr>`
     ).join('') || '<tr><td colspan="3" style="color:#bbb;">Nessun collegamento trovato per questo lotto.</td></tr>';
 
-    document.getElementById('trace-mp').innerHTML = c.mp.map((r) => `<tr><td class="mono">${esc(r.codice)}</td><td>${esc(r.materiale || '')}</td><td>${esc(r.fornitore || '')}</td></tr>`).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
-    document.getElementById('trace-sm').innerHTML = c.sm.map((r) => `<tr><td class="mono">${esc(r.codice)}</td><td>${esc(r.tipo || '')}</td><td>${pill(r.lav === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td></tr>`).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
+    document.getElementById('trace-mp').innerHTML = c.mp.map((r) => `<tr><td class="mono">${esc(r.codice)} ${traceInfoButton('MP', r.codice)}</td><td>${esc(r.materiale || '')}</td><td>${esc(r.fornitore || '')}</td></tr>`).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
+    document.getElementById('trace-sm').innerHTML = c.sm.map((r) => `<tr><td class="mono">${esc(r.codice)} ${traceInfoButton('SM', r.codice)}</td><td>${esc(r.tipo || '')}</td><td>${pill(r.lav === 'esterna' ? 'Est.' : 'Int.', 'pill-grigio')}</td></tr>`).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
     document.getElementById('trace-pf').innerHTML = c.pf.map((r) => {
       const destinazioni = c.passaggi.filter((passaggio) => passaggio.da.tipo === 'PF'
         && passaggio.da.codice === r.codice && passaggio.a.tipo === 'DDT');
-      if (!destinazioni.length) return `<tr><td class="mono">${esc(r.codice)}</td><td class="mono">—</td><td>—</td></tr>`;
+      if (!destinazioni.length) return `<tr><td class="mono">${esc(r.codice)} ${traceInfoButton('PF', r.codice)}</td><td class="mono">—</td><td>—</td></tr>`;
       return destinazioni.map((passaggio) =>
-        `<tr><td class="mono">${esc(r.codice)}</td><td class="mono">${esc(passaggio.a.codice)}</td><td>${esc(passaggio.a.descrizione || '—')}</td></tr>`
+        `<tr><td class="mono">${esc(r.codice)} ${traceInfoButton('PF', r.codice)}</td><td class="mono">${esc(passaggio.a.codice)} ${traceInfoButton('DDT', passaggio.a.codice)}</td><td>${esc(passaggio.a.descrizione || '—')}</td></tr>`
       ).join('');
     }).join('') || '<tr><td colspan="3" style="color:#bbb;">—</td></tr>';
 
