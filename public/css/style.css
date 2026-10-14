@@ -181,6 +181,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     text-align: right;
 }
 
+.footer-pf { align-items: flex-start; }
+.footer-pf > span:first-child { flex: 1; }
+.footer-pf-quantity { display: flex; flex: 1; flex-direction: column; align-items: flex-end; }
+.footer-pf-quantity span { flex: none; text-align: right; }
+
 /* ══════════════════════════════════════
    APP SHELL (dopo login)
 ══════════════════════════════════════ */

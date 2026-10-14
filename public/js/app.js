@@ -259,6 +259,8 @@ async function generateEtichetta(r, date, selector = "#label-mp", type = "MP", o
     date,
     quantity: r.quantita,
     unit: r.unita_misura,
+    confezione: r.confezione ?? 0,
+    unita_misura_confezione: r.unita_misura_confezione || 'pz',
     lot: r.codice_lotto,
     type,
     foodContactSymbol: options.foodContactSymbol ? 'true' : 'false',
