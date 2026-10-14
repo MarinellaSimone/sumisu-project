@@ -402,8 +402,8 @@
         <div class="page" id="page-traccia">
           <div class="card" style="max-width:620px;">
             <div class="card-title"><i class="ti ti-git-branch"></i>Ricerca Tracciabilità</div>
-            <p style="font-size:13px;color:var(--grigio);margin-bottom:14px;">Inserisci un codice lotto (MP-, SM- o PF-) per ricostruire la catena completa.</p>
-            <div class="fr"><label class="fl">Codice lotto</label><input class="fi" id="trace-in" placeholder="es. MP-20260707-CAR-001" style="font-family:'SF Mono',monospace;" onkeydown="if(event.key==='Enter')doTrace()"></div>
+            <p style="font-size:13px;color:var(--grigio);margin-bottom:14px;">Inserisci un codice lotto (MP-, SM- o PF-) oppure un numero DDT (DDT-) per ricostruire la catena completa.</p>
+            <div class="fr"><label class="fl">Codice lotto o DDT</label><input class="fi" id="trace-in" placeholder="es. MP-20260707-CAR-001 o DDT-2026-0087" style="font-family:'SF Mono',monospace;" onkeydown="if(event.key==='Enter')doTrace()"></div>
             <div style="display:flex;gap:10px;"><button class="btn btn-danger" onclick="doTrace()"><i class="ti ti-search"></i>Traccia catena completa</button></div>
           </div>
           <div id="trace-res" style="display:none;margin-top:16px;">

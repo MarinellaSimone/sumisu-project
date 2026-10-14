@@ -701,23 +701,68 @@ router.get('/traccia/:codice', requireAdmin, wrap(async (req, res) => {
     return data || [];
   }
 
-  // Individua il lotto iniziale.
-  const tipoRadice = codice.startsWith('PF-')
-    ? 'PF'
-    : codice.startsWith('SM-')
-      ? 'SM'
-      : 'MP';
-
-  const radice = await cercaPerCodice(tipoRadice);
-
-  if (!radice) {
-    return res.status(404).json({ error: 'Lotto non trovato' });
-  }
-
-  const radiceKey = aggiungiLotto(tipoRadice, radice);
-
   // Conserva i DDT soltanto dei PF raggiunti nella catena.
   const ddtVisitati = new Set();
+
+  // Un DDT iniziale porta ai PF spediti, dai quali si ricostruiscono i componenti.
+  if (codice.startsWith('DDT-')) {
+    const { data: spedizione, error } = await supabase
+      .from('spedizioni')
+      .select('*')
+      .eq('ddt_numero', codice)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!spedizione) {
+      return res.status(404).json({ error: 'DDT non trovato' });
+    }
+
+    const ddtKey = `DDT:${spedizione.id}`;
+    legami.set(ddtKey, {
+      id: spedizione.id,
+      tipo: 'DDT',
+      codice: spedizione.ddt_numero,
+      descrizione: spedizione.cliente || '',
+    });
+    ddtVisitati.add(ddtKey);
+
+    const righe = await leggiRighe(
+      'spedizioni_righe',
+      'lotto_pf_id,quantita,unita_misura',
+      'spedizione_id',
+      spedizione.id
+    );
+
+    for (const riga of righe) {
+      const lotto = await caricaLotto('PF', riga.lotto_pf_id);
+      if (!lotto) continue;
+
+      const lottoKey = aggiungiLotto('PF', lotto);
+      const edgeKey = `${lottoKey}>${ddtKey}`;
+      if (!legami.has(edgeKey)) {
+        legami.set(edgeKey, {
+          da: lottoKey,
+          a: ddtKey,
+          quantita: Number(riga.quantita) || 0,
+          unita_misura: riga.unita_misura || '',
+        });
+      }
+    }
+  } else {
+    // Individua il lotto iniziale.
+    const tipoRadice = codice.startsWith('PF-')
+      ? 'PF'
+      : codice.startsWith('SM-')
+        ? 'SM'
+        : 'MP';
+
+    const radice = await cercaPerCodice(tipoRadice);
+    if (!radice) {
+      return res.status(404).json({ error: 'Lotto non trovato' });
+    }
+
+    aggiungiLotto(tipoRadice, radice);
+  }
 
   while (coda.length) {
     const key = coda.shift();
