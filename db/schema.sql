@@ -136,6 +136,8 @@ create table if not exists lotti_pf (
   articolo_id   uuid references articoli_pf(id) on delete cascade,
   quantita      numeric not null default 0,
   unita_misura  text not null default 'pz',
+  confezione    numeric not null default 0,
+  unita_misura_confezione text not null default 'kg',
   giacenza      numeric not null default 0,
   data_produzione date,
   stato         text not null default 'In corso' check (stato in ('In corso','Attesa','Completato','Pronto','Spedito')),

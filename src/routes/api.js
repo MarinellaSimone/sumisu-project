@@ -51,6 +51,8 @@ function dettagliEntita(tipo, record, righe = []) {
       'Codice articolo': record.articoli_pf?.codice,
       Quantità: record.quantita,
       'Unità di misura': record.unita_misura,
+      Confezione: record.confezione,
+      'Unità di misura confezione': record.unita_misura_confezione,
       Giacenza: record.giacenza,
       'Data produzione': record.data_produzione,
       Stato: record.stato,
@@ -421,7 +423,14 @@ router.get('/lotti-pf', wrap(async (req, res) => {
 }));
 
 router.post('/lotti-pf', wrap(async (req, res) => {
-  const { articolo_id, quantita, unita_misura, data_produzione, note, consumi_mp, consumi_sm, label_options } = req.body;
+  const {
+    articolo_id, quantita, unita_misura, confezione, unita_misura_confezione,
+    data_produzione, note, consumi_mp, consumi_sm, label_options,
+  } = req.body;
+  const confezioneValue = confezione === undefined ? 0 : Number(confezione);
+  if (!Number.isFinite(confezioneValue) || confezioneValue < 0) {
+    return res.status(400).json({ error: 'Inserisci una confezione valida' });
+  }
   await verificaDisponibilita('lotti_mp', consumi_mp, 'lotto_mp_id');
   await verificaDisponibilita('lotti_sm', consumi_sm, 'lotto_sm_id');
 
@@ -438,6 +447,8 @@ router.post('/lotti-pf', wrap(async (req, res) => {
     quantita: Number(quantita) || 0,
     giacenza: Number(quantita) || 0,
     unita_misura: unita_misura || 'pz',
+    confezione: confezioneValue,
+    unita_misura_confezione: unita_misura_confezione || 'kg',
     data_produzione: data_produzione || null,
     note,
     label_options: label_options || {},

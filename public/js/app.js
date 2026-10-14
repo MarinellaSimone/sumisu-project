@@ -661,8 +661,11 @@ function renderPFConsumi() {
 async function salvaPF(btn) {
   const art = val('pf-art'), qty = val('pf-qty');
   const um = val('pf-um');
+  const confezione = val('pf-cfz');
+  const unita_misura_confezione = val('pf-cfz-um');
   if (!art) return showToast('Seleziona un articolo', 'err');
   if (!qty || qty <= 0) return showToast('Inserisci la quantità', 'err');
+  if (confezione === '' || Number(confezione) < 0) return showToast('Inserisci una confezione valida', 'err');
   const labelOptions = {
     foodContactSymbol: document.getElementById('pf-food-contact-symbol').checked,
     foodContact20Pap: document.getElementById('pf-food-contact-20-pap').checked,
@@ -676,7 +679,8 @@ async function salvaPF(btn) {
   loading(true, 'Avvio produzione…');
   try {
     const r = await api('/lotti-pf', { method: 'POST', body: {
-      articolo_id: art, quantita: qty, unita_misura: um, data_produzione: val('pf-data'),
+      articolo_id: art, quantita: qty, unita_misura: um,
+      confezione, unita_misura_confezione, data_produzione: val('pf-data'),
       consumi_mp: pfConsumiMP.map((c) => ({ lotto_mp_id: c.lotto_mp_id, quantita: c.quantita, unita_misura: c.um })),
       consumi_sm: pfConsumiSM.map((c) => ({ lotto_sm_id: c.lotto_sm_id, quantita: c.quantita, unita_misura: c.um })),
       label_options: labelOptions,
@@ -684,6 +688,7 @@ async function salvaPF(btn) {
     generateEtichetta(r, r.data_produzione, '#label-pf', 'PF', labelOptions);
     showToast(`Ordine PF avviato! Lotto ${r.codice_lotto}`);
     document.getElementById('pf-qty').value = 0;
+    document.getElementById('pf-cfz').value = 0;
     loadPF();
   } catch (e) { showToast(e.message, 'err'); }
   finally { loading(false); }
@@ -1206,6 +1211,8 @@ function entityInfoFromRecord(tipo, record) {
       'Codice articolo': record.articoli_pf?.codice,
       Quantità: record.quantita,
       'Unità di misura': record.unita_misura,
+      Confezione: record.confezione,
+      'Unità di misura confezione': record.unita_misura_confezione,
       Giacenza: record.giacenza,
       'Data produzione': record.data_produzione,
       Stato: record.stato,
