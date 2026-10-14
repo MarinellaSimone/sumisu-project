@@ -399,6 +399,15 @@ textarea.fi{height:72px;resize:vertical;}
 .trace-info-row dt{font-size:12px;font-weight:700;color:var(--grigio);}
 .trace-info-row dd{font-size:13px;overflow-wrap:anywhere;}
 .trace-info-empty{padding:20px 0;color:var(--grigio);font-size:13px;}
+.ana-edit-modal{display:none;position:fixed;inset:0;z-index:10001;padding:20px;background:rgba(26,26,24,.45);align-items:center;justify-content:center;}
+.ana-edit-modal.show{display:flex;}
+.ana-edit-dialog{width:min(560px,100%);max-height:min(85vh,760px);overflow:auto;background:#fff;border:1px solid var(--bdr);border-radius:var(--rad-lg);box-shadow:0 16px 48px rgba(0,0,0,.2);padding:20px;}
+.ana-edit-header{margin-bottom:18px;}
+.ana-edit-header h2{font-size:17px;font-weight:800;}
+.ana-edit-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px;}
+.ana-edit-fields .fr:last-child:nth-child(odd){grid-column:1/-1;}
+.ana-edit-actions{margin-top:6px;}
+@media(max-width:520px){.ana-edit-fields{grid-template-columns:minmax(0,1fr);}.ana-edit-fields .fr:last-child:nth-child(odd){grid-column:auto;}}
 
 /* USERS TABLE */
 .act-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:7px;border:1.5px solid var(--bdr);background:#fff;color:var(--grigio);font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;font-family:inherit;}

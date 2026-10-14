@@ -898,18 +898,84 @@ function anaActions(editFn, deleteFn, id, current, label) {
   </div>`;
 }
 
+let anaEditResolve = null;
+let anaEditReturnFocus = null;
+function openAnaEditModal(title, fields) {
+  const modal = document.getElementById('ana-edit-modal');
+  const form = document.getElementById('ana-edit-form');
+  const container = document.getElementById('ana-edit-fields');
+  document.getElementById('ana-edit-title').textContent = title;
+  container.replaceChildren();
+
+  fields.forEach((field) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'fr';
+    const label = document.createElement('label');
+    label.className = 'fl';
+    label.htmlFor = `ana-edit-${field.key}`;
+    label.textContent = field.label;
+    const control = field.options ? document.createElement('select') : document.createElement('input');
+    control.className = 'fi';
+    control.id = `ana-edit-${field.key}`;
+    control.name = field.key;
+    if (field.options) {
+      field.options.forEach((option) => {
+        const optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.textContent = option;
+        control.appendChild(optionElement);
+      });
+    } else {
+      control.type = field.type || 'text';
+      if (field.type === 'number') control.step = 'any';
+      if (field.type === 'email') control.autocomplete = 'email';
+    }
+    control.value = String(field.value ?? '');
+    control.required = Boolean(field.required);
+    wrapper.append(label, control);
+    container.appendChild(wrapper);
+  });
+
+  anaEditReturnFocus = document.activeElement;
+  modal.classList.add('show');
+  container.querySelector('input, select')?.focus();
+
+  return new Promise((resolve) => {
+    anaEditResolve = resolve;
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      const values = Object.fromEntries(fields.map((field) => {
+        const control = form.elements.namedItem(field.key);
+        return [field.key, field.type === 'number' ? Number(control.value) : control.value.trim()];
+      }));
+      closeAnaEditModal(values);
+    };
+  });
+}
+
+function closeAnaEditModal(values = null) {
+  const modal = document.getElementById('ana-edit-modal');
+  if (!modal.classList.contains('show')) return;
+  modal.classList.remove('show');
+  const resolve = anaEditResolve;
+  anaEditResolve = null;
+  if (anaEditReturnFocus?.isConnected) anaEditReturnFocus.focus();
+  anaEditReturnFocus = null;
+  if (resolve) resolve(values);
+}
+
 async function editFornitore(id, current) {
-  const ragione_sociale = prompt('Ragione sociale:', current.ragione_sociale || '');
-  if (ragione_sociale === null) return;
-  const piva = prompt('P.IVA:', current.piva || '');
-  if (piva === null) return;
-  const stato = prompt('Stato (Attivo/Sospeso):', current.stato || 'Attivo');
-  if (stato === null) return;
+  const values = await openAnaEditModal('Modifica fornitore', [
+    { key: 'ragione_sociale', label: 'Ragione sociale', value: current.ragione_sociale, required: true },
+    { key: 'piva', label: 'P.IVA', value: current.piva },
+    { key: 'stato', label: 'Stato', value: current.stato || 'Attivo', options: ['Attivo', 'Sospeso'] },
+  ]);
+  if (!values) return;
   try {
     await api(`/fornitori/${id}`, { method: 'PATCH', body: {
-      ragione_sociale: ragione_sociale.trim(),
-      piva: piva.trim(),
-      stato: stato.trim() || 'Attivo'
+      ragione_sociale: values.ragione_sociale,
+      piva: values.piva,
+      stato: values.stato || 'Attivo'
     } });
     showToast('Fornitore aggiornato');
     loadAna();
@@ -923,23 +989,21 @@ async function delFornitore(id, ragione_sociale) {
 }
 
 async function editCliente(id, current) {
-  const ragione_sociale = prompt('Ragione sociale:', current.ragione_sociale || '');
-  if (ragione_sociale === null) return;
-  const partita_iva = prompt('P.IVA:', current.partita_iva || '');
-  if (partita_iva === null) return;
-  const email = prompt('Email:', current.email || '');
-  if (email === null) return;
-  const telefono = prompt('Telefono:', current.telefono || '');
-  if (telefono === null) return;
-  const stato = prompt('Stato (Attivo/Sospeso):', current.stato || 'Attivo');
-  if (stato === null) return;
+  const values = await openAnaEditModal('Modifica cliente', [
+    { key: 'ragione_sociale', label: 'Ragione sociale', value: current.ragione_sociale, required: true },
+    { key: 'partita_iva', label: 'P.IVA', value: current.partita_iva },
+    { key: 'email', label: 'Email', value: current.email, type: 'email' },
+    { key: 'telefono', label: 'Telefono', value: current.telefono, type: 'tel' },
+    { key: 'stato', label: 'Stato', value: current.stato || 'Attivo', options: ['Attivo', 'Sospeso'] },
+  ]);
+  if (!values) return;
   try {
     await api(`/clienti/${id}`, { method: 'PATCH', body: {
-      ragione_sociale: ragione_sociale.trim(),
-      partita_iva: partita_iva.trim(),
-      email: email.trim(),
-      telefono: telefono.trim(),
-      stato: stato.trim() || 'Attivo'
+      ragione_sociale: values.ragione_sociale,
+      partita_iva: values.partita_iva,
+      email: values.email,
+      telefono: values.telefono,
+      stato: values.stato || 'Attivo'
     } });
     showToast('Cliente aggiornato');
     loadAna();
@@ -953,26 +1017,23 @@ async function delCliente(id, ragione_sociale) {
 }
 
 async function editMateriale(id, current) {
-  const codice = prompt('Codice (4 caratteri alfanumerici):', current.codice || '');
-  if (codice === null) return;
-  const codice_numerico = prompt('Codice numerico (7 cifre):', current.codice_numerico || '');
-  if (codice_numerico === null) return;
-  const descrizione = prompt('Descrizione:', current.descrizione || '');
-  if (descrizione === null) return;
-  const tipo = prompt('Tipo (MP/SM):', current.tipo || 'MP');
-  if (tipo === null) return;
-  const unita_misura = prompt('Unità di misura:', current.unita_misura || 'kg');
-  if (unita_misura === null) return;
-  const soglia_minima = prompt('Soglia minima:', String(current.soglia_minima ?? 0));
-  if (soglia_minima === null) return;
+  const values = await openAnaEditModal('Modifica materiale', [
+    { key: 'codice', label: 'Codice', value: current.codice, required: true },
+    { key: 'codice_numerico', label: 'Codice numerico (7 cifre)', value: current.codice_numerico, required: true },
+    { key: 'descrizione', label: 'Descrizione', value: current.descrizione, required: true },
+    { key: 'tipo', label: 'Tipo', value: current.tipo || 'MP', options: ['MP', 'SM'] },
+    { key: 'unita_misura', label: 'Unità di misura', value: current.unita_misura || 'kg' },
+    { key: 'soglia_minima', label: 'Soglia minima', value: current.soglia_minima ?? 0, type: 'number' },
+  ]);
+  if (!values) return;
   try {
     await api(`/materiali/${id}`, { method: 'PATCH', body: {
-      codice: codice.trim(),
-      codice_numerico: codice_numerico.trim(),
-      descrizione: descrizione.trim(),
-      tipo: tipo.trim().toUpperCase(),
-      unita_misura: unita_misura.trim(),
-      soglia_minima: Number(soglia_minima)
+      codice: values.codice,
+      codice_numerico: values.codice_numerico,
+      descrizione: values.descrizione,
+      tipo: values.tipo.toUpperCase(),
+      unita_misura: values.unita_misura,
+      soglia_minima: values.soglia_minima
     } });
     showToast('Materiale aggiornato');
     loadAna();
@@ -989,20 +1050,19 @@ async function delMateriale(id, codice) {
 }
 
 async function editArticolo(id, current) {
-  const codice = prompt('Codice articolo:', current.codice || '');
-  if (codice === null) return;
-  const codice_numerico = prompt('Codice numerico (7 cifre):', current.codice_numerico || '');
-  if (codice_numerico === null) return;
-  const descrizione = prompt('Descrizione:', current.descrizione || '');
-  if (descrizione === null) return;
-  const stato = prompt('Stato (Attivo/Bozza):', current.stato || 'Attivo');
-  if (stato === null) return;
+  const values = await openAnaEditModal('Modifica articolo', [
+    { key: 'codice', label: 'Codice articolo', value: current.codice, required: true },
+    { key: 'codice_numerico', label: 'Codice numerico (7 cifre)', value: current.codice_numerico, required: true },
+    { key: 'descrizione', label: 'Descrizione', value: current.descrizione, required: true },
+    { key: 'stato', label: 'Stato', value: current.stato || 'Attivo', options: ['Attivo', 'Bozza'] },
+  ]);
+  if (!values) return;
   try {
     await api(`/articoli/${id}`, { method: 'PATCH', body: {
-      codice: codice.trim(),
-      codice_numerico: codice_numerico.trim(),
-      descrizione: descrizione.trim(),
-      stato: stato.trim() || 'Attivo'
+      codice: values.codice,
+      codice_numerico: values.codice_numerico,
+      descrizione: values.descrizione,
+      stato: values.stato || 'Attivo'
     } });
     showToast('Articolo aggiornato');
     loadAna();
@@ -1238,7 +1298,10 @@ function closeTraceInfo() {
 }
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') closeTraceInfo();
+  if (event.key === 'Escape') {
+    closeAnaEditModal();
+    closeTraceInfo();
+  }
 });
 
 function setTraceView(view, button) {

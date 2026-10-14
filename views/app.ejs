@@ -469,6 +469,21 @@
   </section>
 </div>
 
+<div id="ana-edit-modal" class="ana-edit-modal" onclick="if(event.target===this)closeAnaEditModal()">
+  <section class="ana-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="ana-edit-title">
+    <header class="ana-edit-header">
+      <h2 id="ana-edit-title"></h2>
+    </header>
+    <form id="ana-edit-form">
+      <div id="ana-edit-fields" class="ana-edit-fields"></div>
+      <div class="btn-row ana-edit-actions">
+        <button class="btn" type="button" onclick="closeAnaEditModal()">Annulla</button>
+        <button class="btn btn-primary" type="submit">Conferma</button>
+      </div>
+    </form>
+  </section>
+</div>
+
 <script>
   window.__USER__ = <%- JSON.stringify(user) %>;
 </script>
